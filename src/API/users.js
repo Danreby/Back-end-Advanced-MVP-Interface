@@ -1,5 +1,9 @@
-import axios from "axios";
+import api from "./axios";
 
-const API_URL = "http://localhost:8000/api";
-
-export const getUsers = () => axios.get(`${API_URL}/users`);
+export const getProfile = async () => {
+  const token = localStorage.getItem("token");
+  const response = await api.get("/users/me", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
