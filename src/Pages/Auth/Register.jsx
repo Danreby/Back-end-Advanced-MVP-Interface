@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { register } from "../API/auth";
+import { register } from "../../API/auth";
 
 export default function Register() {
   const [email, setEmail] = useState("");

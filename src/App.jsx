@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Login from "./Pages/Login";
-import Register from "./Pages/Register";
+import Login from "./Pages/Auth/Login";
+import Register from "./Pages/Auth/Register";
 import Dashboard from "./Pages/Dashboard";
 
 export default function App() {
