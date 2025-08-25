@@ -1,15 +1,18 @@
-// src/components/games/GameList.jsx
 import React from "react";
-import RatingStars from "../ui/RatingStars"; // (ou mova RatingStars para components/ui)
+import RatingStars from "../ui/RatingStars";
 
-export default function GameList({ games = [], onView, onEdit }) {
-  if (!games || games.length === 0) {
+export default function GameList({ games, onView, onEdit }) {
+  const list = Array.isArray(games)
+    ? games
+    : (games && Array.isArray(games.items) ? games.items : []);
+
+  if (!list || list.length === 0) {
     return <div className="mt-4 text-sm text-gray-500">Nenhum jogo no catálogo.</div>;
   }
 
   return (
     <ul className="mt-4 space-y-3">
-      {games.map((g) => (
+      {list.map((g) => (
         <li key={g.id} className="flex items-start justify-between gap-4 p-3 border rounded hover:shadow-sm dark:border-gray-700">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3">

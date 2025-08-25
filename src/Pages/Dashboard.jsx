@@ -25,17 +25,37 @@ export default function Dashboard() {
 
   useEffect(() => {
     let mounted = true;
+
+    // Pega o perfil do usuário
     getProfile()
       .then((u) => { if (!mounted) return; setUser(u); })
       .catch(() => { window.location.href = "/"; })
       .finally(() => mounted && setLoadingProfile(false));
 
-    // TODO: carregar catálogo do usuário real via GET /games (authed)
+    // Carrega os jogos do backend
     (async () => {
       setLoadingGames(true);
-      // placeholder: substitua por fetch('/games', {Authorization: Bearer ...})
-      setGames([]);
-      setLoadingGames(false);
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) throw new Error("Sem token, faça login");
+
+        const res = await fetch("http://127.0.0.1:8000/games", {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!res.ok) throw new Error("Erro ao carregar jogos");
+
+        const data = await res.json();
+        if (mounted) setGames(data);  // backend deve retornar um array de jogos
+      } catch (err) {
+        console.error("Erro ao carregar catálogo:", err);
+        if (mounted) setGames([]);
+      } finally {
+        if (mounted) setLoadingGames(false);
+      }
     })();
 
     return () => { mounted = false; };
@@ -74,16 +94,13 @@ export default function Dashboard() {
   }
 
   async function handleImportGb(item) {
-    // pega token do localStorage (ajuste conforme seu fluxo de auth)
     const token = localStorage.getItem("token");
     if (!token) {
       alert("Faça login para importar jogos.");
       return;
     }
     try {
-      // opcional: desabilitar botão para evitar imports duplicados
       const created = await importGameToCatalog(item, token);
-      // atualizar lista local (puxar do backend é melhor)
       setGames(prev => [created, ...prev]);
       alert(`Jogo importado: ${created.name}`);
     } catch (err) {
