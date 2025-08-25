@@ -1,3 +1,39 @@
+/* index.css (ou globals.css) */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* --- PALETA: LIGHT MODE (padrão) --- */
+:root{
+  --color-bg: #f8fafc;         /* page background (light gray) */
+  --color-surface: #ffffff;    /* cards, surfaces */
+  --color-primary: #4f46e5;    /* indigo-600 */
+  --color-accent: #06b6d4;     /* cyan-500 */
+  --color-on-primary: #ffffff; /* text on primary */
+  --color-text: #0f172a;       /* slate-900 */
+  --color-muted: #6b7280;      /* gray-500 */
+  --color-border: #e6e7eb;     /* light border */
+  --color-success: #10b981;    /* green-500 */
+  --color-danger: #ef4444;     /* red-500 */
+}
+
+/* --- PALETA: DARK MODE --- */
+.dark {
+  --color-bg: #0b1220;         /* page background dark */
+  --color-surface: #0f1724;    /* card surface dark */
+  --color-primary: #8b5cf6;    /* indigo/violet for dark (brighter) */
+  --color-accent: #06b6d4;     /* keep accent (works in dark) */
+  --color-on-primary: #0b1220; /* dark text on bright primary if needed */
+  --color-text: #e6eef8;       /* near-white for readability */
+  --color-muted: #94a3b8;      /* muted text in dark */
+  --color-border: #1f2937;     /* dark border */
+  --color-success: #34d399;
+  --color-danger: #f87171;
+}
+
+/* utilitários rápidos opcionais */
+.bg-app { background-color: var(--color-bg); }
+.surface { background-color: var(--color-surface); border-color: var(--color-border); }
+
+/* exemplo: para evitar flash ao carregar (opcional)
+   - veja o script abaixo para aplicar classe 'dark' antes do render inicial */
