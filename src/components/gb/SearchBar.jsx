@@ -18,7 +18,7 @@ export default function SearchBar({
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-md border px-3 py-2 pr-12 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        className="w-full rounded-md border px-3 py-2 pr-12 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400 shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-400"
       />
 
       <button

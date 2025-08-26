@@ -1,14 +1,6 @@
 import React, { useEffect, useState } from "react";
 import RatingStars from "../ui/RatingStars";
 
-/**
- * GameList
- * Props:
- *  - games: Array | { items: Array, total?: number|totalCount }
- *  - onView(game)
- *  - onEdit(game)
- *  - loadAll: optional async function that returns all games (Array or { items: Array })
- */
 export default function GameList({ games, onView, onEdit, loadAll }) {
   const [list, setList] = useState(() => {
     if (Array.isArray(games)) return games;
@@ -19,14 +11,12 @@ export default function GameList({ games, onView, onEdit, loadAll }) {
   const [loadError, setLoadError] = useState(null);
 
   useEffect(() => {
-    // normalize when games prop changes
     if (Array.isArray(games)) return setList(games);
     if (games && Array.isArray(games.items)) return setList(games.items);
     setList([]);
   }, [games]);
 
   useEffect(() => {
-    // If the provided games object looks paginated and we have a loader, try to auto-load all games
     const isPaginated = games && Array.isArray(games.items) && (typeof games.total !== "undefined" || typeof games.totalCount !== "undefined");
     const total = isPaginated ? (games.total ?? games.totalCount) : null;
 
@@ -51,7 +41,6 @@ export default function GameList({ games, onView, onEdit, loadAll }) {
     }
   }, [games, loadAll]);
 
-  // compute average rating (ignore null/undefined, but treat non-number as 0)
   const total = list.length;
   const sum = list.reduce((s, g) => s + (Number(g && g.rating) || 0), 0);
   const avg = total ? sum / total : 0;
@@ -62,9 +51,6 @@ export default function GameList({ games, onView, onEdit, loadAll }) {
   return (
     <div>
       <div className="flex items-center justify-between gap-4">
-        <div className="text-sm text-gray-600 dark:text-gray-300">
-          <strong>{total}</strong> jogo{total !== 1 ? "s" : ""} • Média das notas: <strong>{avgDisplay}</strong>
-        </div>
         {isPaginatedButNotAllShown && (
           <div className="text-sm text-right">
             {loadingAll ? (

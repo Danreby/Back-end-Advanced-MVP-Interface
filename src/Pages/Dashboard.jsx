@@ -149,7 +149,7 @@ export default function Dashboard() {
         <div className="flex gap-2 items-center">
           <h1 className="text-2xl font-bold">Meus Jogos</h1>
           <div className="ml-auto w-96">
-            <SearchBar onSearch={handleGbSearch} placeholder="Pesquisar na GiantBomb (ex: zelda)" />
+            <SearchBar onSearch={handleGbSearch} placeholder="Pesquisar na GiantBomb" />
           </div>
         </div>
 
@@ -167,7 +167,7 @@ export default function Dashboard() {
                   <div className="h-12 bg-gray-200 rounded"></div>
                 </div>
               ) : gbResults.length === 0 ? (
-                <div className="text-sm text-gray-500">Pesquise na GiantBomb para ver resultados aqui.</div>
+                <div className="text-sm text-gray-400 dark:text-gray-400">Pesquise na GiantBomb para ver resultados aqui.</div>
               ) : (
                 <ul className="space-y-2 max-h-96 overflow-auto custom-scrollbar">
                   {gbResults.map((item) => (
