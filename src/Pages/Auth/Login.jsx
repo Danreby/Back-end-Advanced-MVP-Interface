@@ -10,7 +10,7 @@ export default function Login() {
     e.preventDefault();
     try {
       await login({ email, password });
-      window.location.href = "/dashboard"; // redirecionar
+      window.location.href = "/"; // redirecionar
     } catch (err) {
       setError("Credenciais inválidas");
     }

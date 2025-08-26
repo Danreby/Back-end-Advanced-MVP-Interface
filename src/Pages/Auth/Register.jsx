@@ -3,13 +3,14 @@ import { register } from "../../API/auth";
 
 export default function Register() {
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await register({ email, password });
+      await register({ name, email, password });
       setMessage("Registro realizado! Verifique seu email.");
     } catch (err) {
       setMessage("Erro ao registrar usuário.");
@@ -22,6 +23,13 @@ export default function Register() {
         <h2 className="text-2xl font-bold mb-6 text-center">Registrar</h2>
         {message && <p className="text-blue-500 mb-3">{message}</p>}
         <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="name"
+            placeholder="Username"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
           <input
             type="email"
             placeholder="Email"
