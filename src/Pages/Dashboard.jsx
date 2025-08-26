@@ -2,11 +2,11 @@
 import React, { useEffect, useState } from "react";
 import { getProfile } from "../API/user";
 import { Navbar } from "../components/common/NavBar";
-
+import { logout } from "../API/auth";
 import GbResultItem from "../components/gb/GbResultItem";
 import GameDetailModal from "../components/gb/GameDetailModal";
 import GameList from "../components/games/GameList";
-
+import { isAuthenticated } from "../API/auth";
 import { searchGames, getGameDetails, importGameToCatalog } from "../API/gbApi";
 import SearchBar from "../components/gb/SearchBar";
 
@@ -26,16 +26,17 @@ export default function Dashboard() {
     let mounted = true;
 
     // Validação rápida: se não tiver token, redireciona para /login
-    const token = localStorage.getItem("token");
+    const token = isAuthenticated();
     if (!token) {
       window.location.href = "/login";
-      return () => { mounted = false; }; // encerra efeito
+      return;
     }
 
     // Tenta obter perfil (caso o token seja inválido, getProfile falhará)
     getProfile()
       .then((u) => { if (!mounted) return; setUser(u); })
-      .catch(() => { if (mounted) window.location.href = "/login"; })
+      .catch(() => { if (mounted) {localStorage.removeItem("token");
+        window.location.href = "/login";}})
       .finally(() => mounted && setLoadingProfile(false));
 
     (async () => {
@@ -140,10 +141,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-300/30 dark:bg-gray-900">
-      <Navbar
-        user={user}
-        onLogout={() => { localStorage.removeItem("token"); window.location.href = "/login"; }}
-      />
+      <Navbar user={user} onLogout={logout} />
 
       <main className="max-w-7xl mx-auto p-6 text-gray-900 dark:text-gray-100">
         <div className="flex gap-2 items-center">
