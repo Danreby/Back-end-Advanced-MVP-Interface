@@ -24,7 +24,7 @@ export default function GbResultItem({ item, onView, onImport }) {
   };
 
   return (
-    <li
+    <div
       role="button"
       tabIndex={0}
       aria-label={`Ver ${item?.name ?? 'item'}`}
@@ -35,7 +35,8 @@ export default function GbResultItem({ item, onView, onImport }) {
       <div className="flex-none">
         {cover ? (
           <img
-            src={cover}
+            src={cover || "/fallback.png"}
+            onError={(e) => { e.target.src = "/fallback.png"; }}
             alt={item.name ?? "cover"}
             className="h-16 w-12 sm:h-20 sm:w-14 md:h-24 md:w-16 object-cover rounded"
           />
@@ -69,6 +70,6 @@ export default function GbResultItem({ item, onView, onImport }) {
           {item.deck || item.description || "—"}
         </div>
       </div>
-    </li>
+    </div>
   );
 }
