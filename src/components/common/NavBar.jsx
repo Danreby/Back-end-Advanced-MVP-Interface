@@ -123,10 +123,9 @@ export function Navbar({ user, onLogout, onNavigate }) {
 
         {navOpen && (
           <div className="sm:hidden mt-2 pb-3 space-y-1">
-            <button onClick={() => handleNavClick("/dashboard")} className="block w-full text-left px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-white">Dashboard</button>
+            <button onClick={() => handleNavClick("/")} className="block w-full text-left px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-white">Dashboard</button>
             <button onClick={() => handleNavClick("/games")} className="block w-full text-left px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-white">Meus Jogos</button>
-            <button onClick={() => handleNavClick("/games/new")} className="block w-full text-left px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-white">Adicionar</button>
-            <button onClick={() => handleNavClick("/games?filter=wishlist")} className="block w-full text-left px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-white">Wishlist</button>
+            <button onClick={() => handleNavClick("/games/about")} className="block w-full text-left px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-white">Sobre</button>
           </div>
         )}
       </div>

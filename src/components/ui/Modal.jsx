@@ -1,9 +1,8 @@
-// src/components/ui/Modal.jsx
-import React, { useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import useLockBodyScroll from '../../Hooks/useLockBodyScroll';
+import React, { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
+import useLockBodyScroll from "../../Hooks/useLockBodyScroll";
 
-export default function Modal({ isOpen, onClose, children, size = 'md', ariaLabelledBy }) {
+export default function Modal({ isOpen, onClose, children, size = "md", ariaLabelledBy }) {
   const overlayRef = useRef(null);
   const dialogRef = useRef(null);
 
@@ -14,19 +13,17 @@ export default function Modal({ isOpen, onClose, children, size = 'md', ariaLabe
 
     const previousActive = document.activeElement;
 
-    // foco no dialog
     const timer = setTimeout(() => {
       if (dialogRef.current) dialogRef.current.focus();
     }, 0);
 
     function handleKey(e) {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         e.preventDefault();
         onClose();
         return;
       }
-      if (e.key === 'Tab') {
-        // trap focus
+      if (e.key === "Tab") {
         const focusable = dialogRef.current.querySelectorAll(
           'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
         );
@@ -47,21 +44,23 @@ export default function Modal({ isOpen, onClose, children, size = 'md', ariaLabe
       }
     }
 
-    document.addEventListener('keydown', handleKey);
+    document.addEventListener("keydown", handleKey);
 
     return () => {
       clearTimeout(timer);
-      document.removeEventListener('keydown', handleKey);
-      try { previousActive && previousActive.focus(); } catch (_) {}
+      document.removeEventListener("keydown", handleKey);
+      try {
+        previousActive && previousActive.focus();
+      } catch (_) {}
     };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   const sizes = {
-    sm: 'max-w-xl',
-    md: 'max-w-2xl',
-    lg: 'max-w-4xl',
+    sm: "max-w-xl",
+    md: "max-w-2xl",
+    lg: "max-w-4xl",
   };
 
   return createPortal(
@@ -69,7 +68,9 @@ export default function Modal({ isOpen, onClose, children, size = 'md', ariaLabe
       <div
         ref={overlayRef}
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onMouseDown={(e) => { if (e.target === overlayRef.current) onClose(); }}
+        onMouseDown={(e) => {
+          if (e.target === overlayRef.current) onClose();
+        }}
         aria-hidden="true"
       />
 
@@ -79,7 +80,7 @@ export default function Modal({ isOpen, onClose, children, size = 'md', ariaLabe
         aria-modal="true"
         aria-labelledby={ariaLabelledBy}
         tabIndex={-1}
-        className={`relative w-full mx-auto ${sizes[size] || sizes.md} bg-white dark:bg-gray-900 rounded-lg shadow-xl overflow-hidden`}
+        className={`relative w-full mx-auto ${sizes[size] || sizes.md} bg-white dark:bg-gray-900 rounded-3xl shadow-xl`}
       >
         {children}
       </div>
