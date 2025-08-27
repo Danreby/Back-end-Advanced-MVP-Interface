@@ -55,17 +55,14 @@ export function Navbar({ user, onLogout, onNavigate }) {
             </button>
 
             <nav className="hidden sm:flex gap-2 items-center" aria-label="Navegação principal">
-              <button onClick={() => handleNavClick("/dashboard")} className="px-3 py-2 rounded-md text-sm hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-white">
+              <button onClick={() => handleNavClick("/")} className="px-3 py-2 rounded-md text-sm hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-white">
                 Dashboard
               </button>
               <button onClick={() => handleNavClick("/games")} className="px-3 py-2 rounded-md text-sm hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-white">
                 Meus Jogos
               </button>
-              <button onClick={() => handleNavClick("/games/new")} className="px-3 py-2 rounded-md text-sm hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-white">
-                Adicionar
-              </button>
-              <button onClick={() => handleNavClick("/games?filter=wishlist")} className="px-3 py-2 rounded-md text-sm hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-white">
-                Wishlist
+              <button onClick={() => handleNavClick("/games/about")} className="px-3 py-2 rounded-md text-sm hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-white">
+                Sobre
               </button>
             </nav>
           </div>
