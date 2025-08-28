@@ -96,8 +96,7 @@ export default function GameList({ games, onView, onEdit, loadAll }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-sm font-medium text-gray-700 dark:text-gray-200">
-                    {(g.name || "").slice(0, 2).toUpperCase()
-                  }
+                    {(g.name || "-").slice(0, 2).toUpperCase()}
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-baseline gap-2">

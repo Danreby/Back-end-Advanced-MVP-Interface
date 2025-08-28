@@ -1,9 +1,8 @@
-// src/Pages/Profile.jsx
 import React, { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Navbar } from "../components/common/NavBar";
 import { getProfile, updateProfile } from "../API/user";
-import api from "../API/axios"; // instância axios com baseURL
+import api from "../API/axios"; 
 import { logout } from "../API/auth";
 import LoadingOverlay from "../components/common/LoadingOverlay";
 
@@ -71,8 +70,7 @@ export default function Profile() {
     const f = e.target.files?.[0];
     if (!f) return;
 
-    // validações simples (tipo e tamanho)
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    const maxSize = 5 * 1024 * 1024; 
     if (!f.type.startsWith("image/")) {
       alert("Por favor selecione um arquivo de imagem.");
       return;
@@ -128,19 +126,16 @@ export default function Profile() {
     }
   }
 
-  // Normaliza avatar_url (usa base da API quando for relativo)
   function resolveAvatarUrl(avatar_url) {
     if (!avatar_url) return null;
-    // já absoluto?
     if (avatar_url.startsWith("http://") || avatar_url.startsWith("https://")) return avatar_url;
 
-    // tenta usar api.defaults.baseURL (definida no seu axios.js)
     const baseFromApi = api && api.defaults && api.defaults.baseURL ? String(api.defaults.baseURL).replace(/\/+$/, "") : null;
     const fallbackOrigin = typeof window !== "undefined" ? String(window.location.origin).replace(/\/+$/, "") : "";
 
     const base = (baseFromApi && (baseFromApi.startsWith("http://") || baseFromApi.startsWith("https://"))) ? baseFromApi : fallbackOrigin;
 
-    if (!base) return avatar_url; // último recurso
+    if (!base) return avatar_url; 
 
     if (avatar_url.startsWith("/")) return `${base}${avatar_url}`;
     return `${base}/${avatar_url.replace(/^\/+/, "")}`;
@@ -161,7 +156,6 @@ export default function Profile() {
 
       if (avatarFile) {
         const fd = new FormData();
-        // backend espera "file"
         fd.append("file", avatarFile);
 
         const resp = await api.post("/users/me/avatar", fd, {
@@ -249,7 +243,6 @@ export default function Profile() {
     );
   }
 
-  // src do avatar: preview local tem prioridade
   const avatarSrc = avatarPreview || (form.avatar_url ? resolveAvatarUrl(form.avatar_url) : null);
 
   return (

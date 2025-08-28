@@ -154,6 +154,7 @@ export default function Login({ onSwitch }) {
                   <input
                     type="email"
                     placeholder="Email"
+                    maxLength={255}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="
@@ -179,6 +180,7 @@ export default function Login({ onSwitch }) {
                   <input
                     type="password"
                     placeholder="Senha"
+                    maxLength={255}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="

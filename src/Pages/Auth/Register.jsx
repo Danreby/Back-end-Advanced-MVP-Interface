@@ -64,6 +64,7 @@ export default function Register({ onSwitch }) {
               <input
                 type="text"
                 placeholder="Nome de usuário"
+                maxLength={255}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full p-3 rounded-xl border border-gray-300
@@ -74,6 +75,7 @@ export default function Register({ onSwitch }) {
               <input
                 type="email"
                 placeholder="Email"
+                maxLength={255}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full p-3 rounded-xl border border-gray-300
@@ -84,6 +86,7 @@ export default function Register({ onSwitch }) {
               <input
                 type="password"
                 placeholder="Senha"
+                maxLength={255}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full p-3 rounded-xl border border-gray-300
