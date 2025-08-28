@@ -17,20 +17,20 @@ export async function listMyReviews({ skip = 0, limit = 50 } = {}) {
   return res.data;
 }
 
-export async function createReview(gameId, payload) {
-  const res = await api.post(`/games/${gameId}/reviews`, payload);
-  return res.data;
-}
+// export async function createReview(gameId, payload) {
+//   const res = await api.post(`/games/${gameId}/reviews`, payload);
+//   return res.data;
+// }
 
-export async function updateReview(gameId, reviewId, payload) {
-  const res = await api.put(`/games/${gameId}/reviews/${reviewId}`, payload);
-  return res.data;
-}
+// export async function updateReview(gameId, reviewId, payload) {
+//   const res = await api.put(`/games/${gameId}/reviews/${reviewId}`, payload);
+//   return res.data;
+// }
 
-export async function deleteReview(gameId, reviewId) {
-  await api.delete(`/games/${gameId}/reviews/${reviewId}`);
-  return true;
-}
+// export async function deleteReview(gameId, reviewId) {
+//   await api.delete(`/games/${gameId}/reviews/${reviewId}`);
+//   return true;
+// }
 
 export async function loadAllReviewsForGame(gameId, { publicOnly = true, pageSize = 200 } = {}) {
   let all = [];
@@ -56,6 +56,21 @@ export async function loadAllPublicReviews({ pageSize = 200 } = {}) {
     skip += pageSize;
   }
   return all;
+}
+
+export async function createReview(gameId, payload) {
+  const res = await api.post(`/reviews/game/${gameId}`, payload);
+  return res.data;
+}
+
+export async function updateReview(reviewId, payload) {
+  const res = await api.put(`/reviews/${reviewId}`, payload);
+  return res.data;
+}
+
+export async function deleteReview(reviewId) {
+  await api.delete(`/reviews/${reviewId}`);
+  return true;
 }
 
 export default {

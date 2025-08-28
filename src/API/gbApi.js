@@ -21,11 +21,6 @@ export async function getGameDetails(guid) {
   return _fetchJson(url);
 }
 
-/**
- * Importa um jogo para o catálogo do usuário.
- * - item: objeto retornado pela GiantBomb (ou objeto com campos name, external_guid, cover_url, description)
- * - token: Bearer token JWT (string) — pode ser obtido de localStorage
- */
 export async function importGameToCatalog(item, token) {
   const payload = {
     name: item.name,

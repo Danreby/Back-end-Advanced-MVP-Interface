@@ -1,85 +1,55 @@
 // src/components/ui/RatingStars.jsx
 import React, { useState, useRef, useEffect } from "react";
 
-/**
- * RatingStars
- *
- * Props:
- * - value: number (0..max)
- * - onChange: function(newValue)  // se fornecido, o componente fica interativo
- * - readOnly: boolean (default true)
- * - max: number (default 10)  -- escala total (ex.: 10)
- * - step: number (default 1)  -- incrementos (1 or 0.5)
- * - size: number (px) tamanho do ícone (default 20)
- * - className: string (opcional)
- *
- * O componente renderiza 5 estrelas (UI usual). Cada estrela representa max/5 pontos.
- * Se `step` for 0.5, permite seleção de meio-estrela.
- */
 export default function RatingStars({
   value = 0,
   onChange = null,
   readOnly = true,
   max = 10,
-  step = 1,
   size = 20,
   className = "",
+  showTooltip = true,
 }) {
   const stars = 5;
-  const starValue = max / stars; // ex: 10/5 = 2 points per star
-  const [internalValue, setInternalValue] = useState(value ?? 0);
+  const starValue = max / stars; // e.g. 10/5 = 2
+  const [internalValue, setInternalValue] = useState(Math.round(value ?? 0));
   const [hoverValue, setHoverValue] = useState(null);
   const rootRef = useRef(null);
 
   useEffect(() => {
-    setInternalValue(value ?? 0);
+    setInternalValue(Math.round(value ?? 0));
   }, [value]);
 
-  // calcula preenchimento da estrela i (0..4) em %, considerando hover se presente
   function fillPercentForIndex(i) {
+    // v is integer (1..max) or 0
     const v = hoverValue !== null ? hoverValue : internalValue;
-    const starMin = i * starValue; // pontos já cobertos antes desta estrela
+    const starMin = i * starValue;
     const starMax = (i + 1) * starValue;
     if (v <= starMin) return 0;
     if (v >= starMax) return 100;
-    // parcial
+    // v is integer; can produce partial fills when v is inside starMin..starMax
     const pct = ((v - starMin) / starValue) * 100;
     return Math.round(pct);
   }
 
-  // converte posição do clique/hover em valor (considera step)
   function valueFromPointer(event, starIndex) {
-    const target = event.currentTarget; // star element
+    // Compute fractional position across the entire stars block mapped to 0..max,
+    // then round to integer 1..max (or 0)
+    const target = event.currentTarget;
     const rect = target.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const half = x < rect.width / 2;
-    // pontos base para esta estrela
-    const base = starIndex * starValue;
-    let addition;
-    if (step >= starValue) {
-      // step equals starValue (e.g. max=5), coarse mapping
-      addition = starValue;
-    } else {
-      // decide 50% or 100% for half step, otherwise compute according to exact pointer
-      if (step < starValue && step >= starValue / 2) {
-        // typical: step 1, starValue 2 -> left=1 right=2
-        addition = half ? starValue / 2 : starValue;
-      } else {
-        // fallback: compute precise fraction then round to nearest step
-        const fraction = Math.max(0, Math.min(1, x / rect.width));
-        let raw = base + fraction * starValue;
-        // round to nearest step
-        raw = Math.round(raw / step) * step;
-        return Math.max(0, Math.min(max, raw));
-      }
-    }
-    const raw = base + addition;
-    // round to step
-    const rounded = Math.round(raw / step) * step;
-    return Math.max(0, Math.min(max, rounded));
+    const clientX = event.touches && event.touches[0] ? event.touches[0].clientX : event.clientX;
+    const offsetX = clientX - rect.left;
+    // fraction within this star element
+    const fracWithinStar = Math.max(0, Math.min(1, offsetX / rect.width));
+    // overall fraction across all stars = (starIndex + fracWithinStar) / stars
+    const overallFraction = (starIndex + fracWithinStar) / stars;
+    let raw = overallFraction * max;
+    // Round to nearest integer (1..max). If raw < 0.5 => 0
+    raw = Math.round(raw);
+    raw = Math.max(0, Math.min(max, raw));
+    return raw;
   }
 
-  // handle click on a star
   function handleClick(e, i) {
     if (readOnly || typeof onChange !== "function") return;
     const newVal = valueFromPointer(e, i);
@@ -87,34 +57,33 @@ export default function RatingStars({
     onChange(newVal);
   }
 
-  function handleMouseMove(e, i) {
+  function handlePointerMove(e, i) {
     if (readOnly) return;
     const newVal = valueFromPointer(e, i);
     setHoverValue(newVal);
   }
-  function handleMouseLeave() {
+
+  function handlePointerLeave() {
     if (readOnly) return;
     setHoverValue(null);
   }
 
-  // keyboard support when interactive: Left/Right arrows adjust by step
   function handleKeyDown(e) {
     if (readOnly || typeof onChange !== "function") return;
     if (!["ArrowLeft", "ArrowRight", "ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
     e.preventDefault();
     let cur = hoverValue !== null ? hoverValue : internalValue;
-    if (e.key === "ArrowLeft" || e.key === "ArrowDown") cur = Math.max(0, cur - step);
-    if (e.key === "ArrowRight" || e.key === "ArrowUp") cur = Math.min(max, cur + step);
+    if (e.key === "ArrowLeft" || e.key === "ArrowDown") cur = Math.max(0, cur - 1);
+    if (e.key === "ArrowRight" || e.key === "ArrowUp") cur = Math.min(max, cur + 1);
     if (e.key === "Home") cur = 0;
     if (e.key === "End") cur = max;
-    cur = Math.round(cur / step) * step;
     setInternalValue(cur);
     onChange(cur);
     setHoverValue(null);
   }
 
-  // accessible label
-  const ariaLabel = `Rating ${internalValue} de ${max}`;
+  const displayValue = hoverValue !== null ? hoverValue : internalValue;
+  const ariaLabel = `Rating ${displayValue} de ${max}`;
 
   return (
     <div
@@ -126,9 +95,20 @@ export default function RatingStars({
       aria-valuenow={readOnly ? undefined : internalValue}
       tabIndex={readOnly ? -1 : 0}
       onKeyDown={handleKeyDown}
-      className={`inline-flex items-center gap-1 ${className}`}
-      onMouseLeave={handleMouseLeave}
+      className={`inline-flex items-center gap-2 relative ${className}`}
+      onMouseLeave={handlePointerLeave}
+      style={{ touchAction: readOnly ? "manipulation" : "none" }}
     >
+      {showTooltip && (
+        <div
+          aria-hidden
+          className="absolute -top-7 left-1/2 transform -translate-x-1/2 text-xs px-2 py-0.5 rounded bg-gray-900 text-white pointer-events-none select-none"
+          style={{ opacity: displayValue === null ? 0 : 1, transition: "opacity 120ms" }}
+        >
+          {displayValue} / {max}
+        </div>
+      )}
+
       {Array.from({ length: stars }).map((_, i) => {
         const pct = fillPercentForIndex(i); // 0..100
         return (
@@ -136,7 +116,9 @@ export default function RatingStars({
             type="button"
             key={i}
             onClick={(e) => handleClick(e, i)}
-            onMouseMove={(e) => handleMouseMove(e, i)}
+            onMouseMove={(e) => handlePointerMove(e, i)}
+            onTouchMove={(e) => handlePointerMove(e, i)}
+            onTouchStart={(e) => handlePointerMove(e, i)}
             onFocus={() => setHoverValue(null)}
             className="p-0 m-0 border-0 bg-transparent"
             style={{ cursor: readOnly ? "default" : "pointer", lineHeight: 0 }}

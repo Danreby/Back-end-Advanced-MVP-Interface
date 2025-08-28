@@ -141,7 +141,6 @@ export default function Dashboard() {
     setSelectedGbGame(null);
   }
 
-  // --- animações ---
   const cardVariants = {
     hidden: { opacity: 0, y: 18, scale: 0.99 },
     show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 280, damping: 26 } },
@@ -178,7 +177,7 @@ export default function Dashboard() {
 
       <main className="max-w-7xl mx-auto p-6 text-gray-900 dark:text-gray-100">
         <div className="flex gap-2 items-center">
-          <motion.h1 className="text-2xl font-bold" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>Meus Jogos</motion.h1>
+          <motion.h1 className="text-2xl font-bold" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>Dashboard</motion.h1>
 
           <div className="ml-auto w-96">
             <SearchBar onSearch={handleGbSearch} placeholder="Pesquisar na GiantBomb" />

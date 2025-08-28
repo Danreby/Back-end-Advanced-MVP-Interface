@@ -92,7 +92,14 @@ export default function GameList({ games, onView, onEdit, loadAll }) {
       ) : (
         <ul className="mt-4 space-y-3">
           {list.map((g) => (
-            <li key={g.id ?? g._id ?? g.name} className="flex items-start justify-between gap-4 p-3 border rounded hover:shadow-sm dark:border-gray-700">
+            <li
+              key={g.id ?? g._id ?? g.name}
+              onClick={() => onView && onView(g)}
+              className="flex items-start justify-between gap-4 p-3 border rounded hover:shadow-sm dark:border-gray-700 cursor-pointer"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onView && onView(g); }}
+            >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-sm font-medium text-gray-700 dark:text-gray-200">
@@ -100,7 +107,14 @@ export default function GameList({ games, onView, onEdit, loadAll }) {
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-baseline gap-2">
-                      <a href={`/games/${g.id ?? g._id}`} className="font-medium truncate hover:underline" title={g.name}>{g.name}</a>
+                      <a
+                        href={`/games/${g.id ?? g._id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="font-medium truncate hover:underline"
+                        title={g.name}
+                      >
+                        {g.name}
+                      </a>
                       <div className="text-xs text-gray-500">· {g.status || "—"}</div>
                     </div>
                     <div className="text-sm text-gray-500 truncate">{g.description || "—"}</div>
@@ -111,8 +125,19 @@ export default function GameList({ games, onView, onEdit, loadAll }) {
               <div className="flex flex-col items-end gap-2">
                 <RatingStars value={Number(g.rating) || 0} />
                 <div className="flex gap-2">
-                  <button onClick={() => onView && onView(g)} className="text-sm px-2 py-1 border rounded">Ver</button>
-                  <button onClick={() => onEdit && onEdit(g)} className="text-sm px-2 py-1 bg-indigo-600 text-white rounded">Editar</button>
+                  {/* <button
+                    onClick={(e) => { e.stopPropagation(); onView && onView(g); }}
+                    className="text-sm px-3 py-1 border rounded"
+                    aria-label={`Ver ${g.name}`}
+                  >
+                    Ver
+                  </button> */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onEdit && onEdit(g); }}
+                    className="text-sm px-2 py-1 bg-indigo-600 text-white rounded"
+                  >
+                    Editar
+                  </button>
                 </div>
               </div>
             </li>
