@@ -1,8 +1,11 @@
-import React, { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+// src/Pages/Profile.jsx
+import React, { useEffect, useState, useRef } from "react";
+import { motion } from "framer-motion";
 import { Navbar } from "../components/common/NavBar";
 import { getProfile, updateProfile } from "../API/user";
+import api from "../API/axios"; // instância axios com baseURL
 import { logout } from "../API/auth";
+import LoadingOverlay from "../components/common/LoadingOverlay";
 
 export default function Profile() {
   const [user, setUser] = useState(null);
@@ -13,6 +16,10 @@ export default function Profile() {
 
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [avatarBroken, setAvatarBroken] = useState(false);
+
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
@@ -28,6 +35,7 @@ export default function Profile() {
           bio: res?.bio || "",
           avatar_url: res?.avatar_url || null,
         });
+        setAvatarBroken(false);
       } catch (err) {
         console.error("Erro ao carregar perfil:", err);
         try { localStorage.removeItem("token"); } catch (e) {}
@@ -45,6 +53,7 @@ export default function Profile() {
     }
     const url = URL.createObjectURL(avatarFile);
     setAvatarPreview(url);
+    setAvatarBroken(false);
     return () => URL.revokeObjectURL(url);
   }, [avatarFile]);
 
@@ -61,7 +70,21 @@ export default function Profile() {
   function handleAvatarSelect(e) {
     const f = e.target.files?.[0];
     if (!f) return;
+
+    // validações simples (tipo e tamanho)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (!f.type.startsWith("image/")) {
+      alert("Por favor selecione um arquivo de imagem.");
+      return;
+    }
+    if (f.size > maxSize) {
+      alert("Imagem muito grande. Máx 5MB.");
+      return;
+    }
+
     setAvatarFile(f);
+    setEditing(true);
+    setAvatarBroken(false);
   }
 
   async function handleRemoveAvatar() {
@@ -69,64 +92,119 @@ export default function Profile() {
     if (!ok) return;
     setSaving(true);
     try {
-      const token = localStorage.getItem("token");
-      const base = process.env.REACT_APP_API_URL || "";
-      const res = await fetch(`${base}/users/me`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ avatar_url: null }),
-      });
-      if (!res.ok) throw new Error("Erro ao remover avatar");
+      try {
+        await api.delete("/users/me/avatar");
+      } catch (err) {
+        await updateProfile({ avatar_url: null });
+      }
+
       const profile = await getProfile();
       setUser(profile);
       setForm((s) => ({ ...s, avatar_url: profile?.avatar_url || null }));
       setAvatarFile(null);
       setAvatarPreview(null);
+      setAvatarBroken(false);
     } catch (err) {
       console.error(err);
-      alert("Falha ao remover avatar: " + (err.message || err));
+      const msg = parseApiError(err);
+      alert("Falha ao remover avatar: " + msg);
     } finally {
       setSaving(false);
     }
   }
 
+  function parseApiError(err) {
+    try {
+      const data = err?.response?.data;
+      if (!data) return err?.message || String(err);
+      if (Array.isArray(data?.detail)) {
+        return data.detail.map((d) => d.msg || JSON.stringify(d)).join("; ");
+      }
+      if (typeof data === "string") return data;
+      if (data?.message) return data.message;
+      return JSON.stringify(data);
+    } catch (e) {
+      return err?.message || String(err);
+    }
+  }
+
+  // Normaliza avatar_url (usa base da API quando for relativo)
+  function resolveAvatarUrl(avatar_url) {
+    if (!avatar_url) return null;
+    // já absoluto?
+    if (avatar_url.startsWith("http://") || avatar_url.startsWith("https://")) return avatar_url;
+
+    // tenta usar api.defaults.baseURL (definida no seu axios.js)
+    const baseFromApi = api && api.defaults && api.defaults.baseURL ? String(api.defaults.baseURL).replace(/\/+$/, "") : null;
+    const fallbackOrigin = typeof window !== "undefined" ? String(window.location.origin).replace(/\/+$/, "") : "";
+
+    const base = (baseFromApi && (baseFromApi.startsWith("http://") || baseFromApi.startsWith("https://"))) ? baseFromApi : fallbackOrigin;
+
+    if (!base) return avatar_url; // último recurso
+
+    if (avatar_url.startsWith("/")) return `${base}${avatar_url}`;
+    return `${base}/${avatar_url.replace(/^\/+/, "")}`;
+  }
+
   async function handleSave() {
     setSaving(true);
+    setUploadProgress(0);
+    setAvatarBroken(false);
     try {
       const payload = { name: form.name, bio: form.bio };
-      let updated;
+      let updated = null;
       try {
         updated = await updateProfile(payload);
       } catch (err) {
-        console.warn("updateProfile falhou ou não retornou usuário, will refetch profile after avatar upload", err);
+        console.warn("updateProfile falhou (continua fluxo):", err);
       }
 
       if (avatarFile) {
-        const base = process.env.REACT_APP_API_URL || "";
-        const token = localStorage.getItem("token");
         const fd = new FormData();
+        // backend espera "file"
         fd.append("file", avatarFile);
-        const resp = await fetch(`${base}/users/me/avatar`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
+
+        const resp = await api.post("/users/me/avatar", fd, {
+          onUploadProgress: (evt) => {
+            if (!evt.total) return;
+            const percent = Math.round((evt.loaded * 100) / evt.total);
+            setUploadProgress(percent);
           },
-          body: fd,
         });
-        if (!resp.ok) {
-          let text = await resp.text();
-          throw new Error("Falha ao enviar avatar: " + (text || resp.statusText));
-        }
-        const body = await resp.json();
-        if (body.user) {
+
+        const body = resp?.data || {};
+
+        if (body.avatar_url) {
+          const avatarUrlRaw = body.avatar_url;
+          const bust = `t=${Date.now()}`;
+          const newAvatarUrl = avatarUrlRaw.includes("?") ? `${avatarUrlRaw}&${bust}` : `${avatarUrlRaw}?${bust}`;
+
+          setForm((f) => ({ ...f, avatar_url: newAvatarUrl }));
+          setUser((u) => ({ ...u, avatar_url: newAvatarUrl }));
+
+          if (body.user) {
+            updated = body.user;
+          } else {
+            updated = await getProfile();
+          }
+        } else if (body.user) {
           updated = body.user;
-        } else if (body.avatar_url) {
-          try { updated = await getProfile(); } catch (e) {}
+          if (updated?.avatar_url) {
+            const av = updated.avatar_url;
+            const bust = `t=${Date.now()}`;
+            const newAvatarUrl = av.includes("?") ? `${av}&${bust}` : `${av}?${bust}`;
+            setForm((f) => ({ ...f, avatar_url: newAvatarUrl }));
+            setUser((u) => ({ ...u, avatar_url: newAvatarUrl }));
+          }
         } else {
           updated = await getProfile();
+          if (updated?.avatar_url) {
+            const av = updated.avatar_url;
+            const bust = `t=${Date.now()}`;
+            const newAvatarUrl = av.includes("?") ? `${av}&${bust}` : `${av}?${bust}`;
+            setForm((f) => ({ ...f, avatar_url: newAvatarUrl }));
+            setUser((u) => ({ ...u, avatar_url: newAvatarUrl }));
+          }
         }
       }
 
@@ -139,73 +217,18 @@ export default function Profile() {
         bio: updated?.bio || "",
         avatar_url: updated?.avatar_url || null,
       });
+
       setAvatarFile(null);
       setAvatarPreview(null);
       setEditing(false);
     } catch (err) {
       console.error("Erro ao salvar perfil:", err);
-      alert("Erro ao salvar: " + (err.message || err));
+      const msg = parseApiError(err);
+      alert("Erro ao salvar: " + msg);
     } finally {
       setSaving(false);
+      setUploadProgress(0);
     }
-  }
-
-  function resolveAvatarUrl(avatar_url) {
-    if (!avatar_url) return null;
-    if (avatar_url.startsWith("http://") || avatar_url.startsWith("https://")) return avatar_url;
-    if (typeof window !== "undefined") return `${window.location.origin}${avatar_url}`;
-    return avatar_url;
-  }
-
-  // --- Loading overlay (copied / matched to Dashboard) ---
-  function LoadingOverlay({ open = false, text = "Carregando..." }) {
-    return (
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            key="loading-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center"
-            aria-hidden={!open}
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-white/80 via-gray-100/60 to-gray-200/40 dark:from-slate-900/90 dark:via-indigo-950/70 dark:to-black/80 backdrop-blur-sm" />
-
-            <motion.div
-              initial={{ scale: 0.96, opacity: 0 }}
-              animate={{ scale: [0.96, 1.02, 1], opacity: 1 }}
-              transition={{ duration: 0.9 }}
-              className="relative z-10 w-full max-w-sm rounded-3xl p-6 bg-white/95 dark:bg-gray-900/70 border border-gray-200 dark:border-gray-700 shadow-2xl"
-            >
-              <div className="flex flex-col items-center gap-3">
-                <motion.div
-                  animate={{ rotate: [0, 360] }}
-                  transition={{ repeat: Infinity, duration: 1.8, ease: "linear" }}
-                  className="w-20 h-20 rounded-full flex items-center justify-center bg-white/8 backdrop-blur-md"
-                  aria-hidden
-                >
-                  <svg width="48" height="48" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                      <linearGradient id="g2" x1="0" x2="1" y1="0" y2="1">
-                        <stop offset="0" stopColor="#7C3AED" />
-                        <stop offset="1" stopColor="#06B6D4" />
-                      </linearGradient>
-                    </defs>
-                    <path fill="url(#g2)" d="M6.5 0A1.5 1.5 0 0 0 5 1.5v3a.5.5 0 0 1-.5.5h-3A1.5 1.5 0 0 0 0 6.5v3A1.5 1.5 0 0 0 1.5 11h3a.5.5 0 0 1 .5.5v3A1.5 1.5 0 0 0 6.5 16h3a1.5 1.5 0 0 0 1.5-1.5v-3a.5.5 0 0 1 .5-.5h3A1.5 1.5 0 0 0 16 9.5v-3A1.5 1.5 0 0 0 14.5 5h-3a.5.5 0 0 1-.5-.5v-3A1.5 1.5 0 0 0 9.5 0z" />
-                  </svg>
-                </motion.div>
-
-                <div className="text-center">
-                  <div className="text-lg font-bold text-gray-900 dark:text-white">{text}</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">Aguarde enquanto carregamos seus dados.</div>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    );
   }
 
   if (loading) {
@@ -226,7 +249,8 @@ export default function Profile() {
     );
   }
 
-  const avatarSrc = avatarPreview || resolveAvatarUrl(form.avatar_url);
+  // src do avatar: preview local tem prioridade
+  const avatarSrc = avatarPreview || (form.avatar_url ? resolveAvatarUrl(form.avatar_url) : null);
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-slate-900 dark:via-indigo-950 dark:to-black transition-colors duration-300">
@@ -240,29 +264,54 @@ export default function Profile() {
         <motion.div variants={cardVariants} initial="hidden" animate="show" className={`relative rounded-3xl p-6 shadow-2xl bg-white/95 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700`}>
           <div className="flex gap-6 flex-col md:flex-row items-center md:items-start">
             <div className="flex-shrink-0">
-              <div className={`w-32 h-32 rounded-full flex items-center justify-center text-3xl font-bold overflow-hidden bg-white text-gray-900 border border-gray-200 dark:bg-gray-800 dark:text-white dark:border-gray-700`}>
-                {avatarSrc ? (
-                  <img src={avatarSrc} alt={user?.name || user?.email} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-white">
-                    {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
-                  </div>
-                )}
+              <div className={`w-32 h-32 rounded-full relative overflow-hidden flex items-center justify-center text-3xl font-bold bg-white text-gray-900 border border-gray-200 dark:bg-gray-800 dark:text-white dark:border-gray-700`}>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click(); }}
+                  aria-label="Alterar avatar"
+                  className="absolute inset-0 w-full h-full flex items-center justify-center cursor-pointer focus:outline-none"
+                >
+                  {avatarSrc && !avatarBroken ? (
+                    <img
+                      src={avatarSrc}
+                      alt={user?.name || user?.email || "Avatar"}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.warn("Erro ao carregar avatar:", avatarSrc, e);
+                        setAvatarBroken(true);
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-white">
+                      {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+                    </div>
+                  )}
+                </button>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarSelect}
+                  className="hidden"
+                />
               </div>
 
               {editing && (
                 <div className="mt-3 flex flex-col items-center gap-2">
-                  <label className="text-xs text-gray-600 dark:text-gray-300">Atualizar avatar</label>
-                  <div className="flex gap-2">
-                    <label className="cursor-pointer inline-flex items-center px-3 py-2 rounded-md border bg-white dark:bg-gray-800 text-sm">
-                      <input type="file" accept="image/*" onChange={handleAvatarSelect} className="hidden" />
-                      Selecionar
-                    </label>
-                    <button type="button" onClick={() => { setAvatarFile(null); setAvatarPreview(null); }} className="px-3 py-2 rounded-md border bg-gray-50 text-sm">Remover seleção</button>
-                  </div>
                   {form.avatar_url && !avatarPreview && (
-                    <button type="button" onClick={handleRemoveAvatar} className="text-xs text-red-600 hover:underline mt-1">Remover avatar atual</button>
+                    <button type="button" onClick={handleRemoveAvatar} className="text-xs text-red-600 hover:underline mt-1">Remover avatar</button>
                   )}
+                </div>
+              )}
+
+              {uploadProgress > 0 && uploadProgress < 100 && (
+                <div className="mt-3 w-32">
+                  <div className="h-2 bg-gray-200 rounded overflow-hidden">
+                    <div style={{ width: `${uploadProgress}%` }} className="h-full bg-indigo-600 transition-all" />
+                  </div>
+                  <div className="text-xs mt-1 text-gray-600">{uploadProgress}%</div>
                 </div>
               )}
             </div>
@@ -280,7 +329,7 @@ export default function Profile() {
                   ) : (
                     <>
                       <button onClick={handleSave} disabled={saving} className="px-3 py-2 rounded-md bg-indigo-600 text-white font-medium hover:brightness-95 disabled:opacity-60">{saving ? "Salvando..." : "Salvar"}</button>
-                      <button onClick={() => { setEditing(false); setForm({ name: user?.name || "", email: user?.email || "", bio: user?.bio || "", avatar_url: user?.avatar_url || null }); setAvatarFile(null); setAvatarPreview(null); }} className="px-3 py-2 rounded-md border bg-white text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-white dark:border-gray-700">Cancelar</button>
+                      <button onClick={() => { setEditing(false); setForm({ name: user?.name || "", email: user?.email || "", bio: user?.bio || "", avatar_url: user?.avatar_url || null }); setAvatarFile(null); setAvatarPreview(null); setAvatarBroken(false); }} className="px-3 py-2 rounded-md border bg-white text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-white dark:border-gray-700">Cancelar</button>
                     </>
                   )}
                 </div>
