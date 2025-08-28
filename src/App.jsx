@@ -6,6 +6,7 @@ import { isAuthenticated } from "./API/auth";
 import Profile from "./Pages/Profile";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import MyGames from "./Pages/MyGames";
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/Login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/profile" element={isAuthenticated() ? <Profile /> : <Navigate to="/login" />} />
+        <Route path="/games" element={isAuthenticated() ? <MyGames /> : <Navigate to="/login" />} />
         <Route path="/" element={isAuthenticated() ? <Dashboard /> : <Navigate to="/login" />} />
       </Routes>
       <ToastContainer theme="dark" position="top-right" autoClose={3000} />
