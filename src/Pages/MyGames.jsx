@@ -1,4 +1,3 @@
-// src/Pages/MyGames.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { getProfile } from "../API/user";
@@ -327,7 +326,6 @@ export default function MyGames() {
         clearFilters={clearFilters}
       />
 
-      {/* decoração visual — coloquei z-10 para não sobrepor botões interativos */}
       <div className="pointer-events-none absolute inset-0 z-10">
         <motion.div animate={{ rotate: [0, 6, -6, 0] }} transition={{ duration: 12, repeat: Infinity, ease: "linear" }} className="absolute left-8 top-20 w-6 h-6 rounded-full bg-gray-200/20 dark:bg-white/6 blur-sm" />
         <motion.div animate={{ x: [0, 20, 0] }} transition={{ duration: 9, repeat: Infinity, ease: "linear" }} className="absolute right-24 top-40 w-8 h-8 rounded-full bg-gray-100/20 dark:bg-white/8 blur-sm" />

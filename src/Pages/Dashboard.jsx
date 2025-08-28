@@ -10,6 +10,7 @@ import { isAuthenticated } from "../API/auth";
 import { searchGames, getGameDetails, importGameToCatalog } from "../API/gbApi";
 import SearchBar from "../components/gb/SearchBar";
 import LoadingOverlay from "../components/common/LoadingOverlay";
+import ReviewList from "../components/games/ReviewList";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
@@ -48,7 +49,7 @@ export default function Dashboard() {
     (async () => {
       setLoadingGames(true);
       try {
-        const res = await fetch("http://127.0.0.1:8000/games/all", {
+        const res = await fetch("http://127.0.0.1:8000/reviews", {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -186,26 +187,13 @@ export default function Dashboard() {
 
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
           <motion.div className="lg:col-span-2 rounded-3xl p-4 shadow-2xl bg-white/95 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700" variants={cardVariants} initial="hidden" animate="show">
-            <h2 className="font-semibold text-lg">Catálogo</h2>
-
+            {/* <h2 className="font-semibold text-lg">Catálogo</h2> */}
             {loadingGames ? (
-              <div className="mt-4 space-y-3">
-                <div className="animate-pulse grid grid-cols-3 gap-3">
-                  <div className="h-28 bg-gray-200 dark:bg-gray-700 rounded-lg col-span-1" />
-                  <div className="h-28 bg-gray-200 dark:bg-gray-700 rounded-lg col-span-1" />
-                  <div className="h-28 bg-gray-200 dark:bg-gray-700 rounded-lg col-span-1" />
-                </div>
-                <div className="animate-pulse h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
-                <div className="animate-pulse h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/4" />
-              </div>
+              <div className="mt-4 text-sm text-gray-500">Carregando jogos...</div>
             ) : (
-              <motion.div variants={listVariants} initial="hidden" animate="show" className="mt-4">
+              <motion.div variants={listVariants} initial="hidden" animate="show" className="">
                 <motion.div variants={itemVariants}>
-                  <GameList
-                    games={games}
-                    onView={(g) => console.log("view", g)}
-                    onEdit={(g) => console.log("edit", g)}
-                  />
+                  <ReviewList games={games} />
                 </motion.div>
               </motion.div>
             )}
