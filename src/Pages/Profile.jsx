@@ -289,17 +289,17 @@ export default function Profile() {
               <div className="mt-4 grid grid-cols-1 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome</label>
-                  <input name="name" value={form.name} onChange={handleChange} disabled={!editing} className={`mt-1 block w-full rounded-md p-3 ${editing ? "bg-white text-gray-900 border border-gray-200 dark:bg-gray-800 dark:text-white dark:border-gray-700" : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300"}`} />
+                  <input name="name" maxLength={255} value={form.name} onChange={handleChange} disabled={!editing} className={`mt-1 block w-full rounded-md p-3 ${editing ? "bg-white text-gray-900 border border-gray-200 dark:bg-gray-800 dark:text-white dark:border-gray-700" : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300"}`} />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-                  <input name="email" value={form.email} onChange={handleChange} disabled className="mt-1 block w-full rounded-md p-3 bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 cursor-not-allowed" />
+                  <input name="email" maxLength={255} value={form.email} onChange={handleChange} disabled className="mt-1 block w-full rounded-md p-3 bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 cursor-not-allowed" />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Bio</label>
-                  <textarea name="bio" value={form.bio} onChange={handleChange} disabled={!editing} rows={4} className={`mt-1 block w-full rounded-md p-3 resize-none ${editing ? "bg-white text-gray-900 border border-gray-200 dark:bg-gray-800 dark:text-white dark:border-gray-700" : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300"}`} />
+                  <textarea name="bio" maxLength={255} value={form.bio} onChange={handleChange} disabled={!editing} rows={4} className={`mt-1 block w-full rounded-md p-3 resize-none ${editing ? "bg-white text-gray-900 border border-gray-200 dark:bg-gray-800 dark:text-white dark:border-gray-700" : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300"}`} />
                 </div>
 
                 <div className="flex gap-3">

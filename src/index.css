@@ -15,8 +15,7 @@
   --color-success: #10b981;    /* green-500 */
   --color-danger: #ef4444;     /* red-500 */
 
-  /* cores específicas para scrollbar (padrões) */
-  --scroll-thumb: rgba(79,70,229,0.95);   /* indigo-600 */
+  --scroll-thumb: rgba(79,70,229,0.95);
   --scroll-track: rgba(0,0,0,0.04);
 }
 
@@ -38,13 +37,12 @@
   --scroll-track: rgba(255,255,255,0.03);
 }
 
-/* utilitários rápidos opcionais */
+/* utilitários rápidos */
 .bg-app { background-color: var(--color-bg); }
 .surface { background-color: var(--color-surface); border-color: var(--color-border); }
 
 /* -------------------------
    CUSTOM SCROLLBAR (global)
-   Aplique a classe `custom-scrollbar` ao container que tem overflow (ex: ul)
    ------------------------- */
 
 /* base: Firefox */
@@ -61,7 +59,7 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent; /* transparente para deixar o conteúdo aparecer */
+  background: transparent;
   border-radius: 9999px;
 }
 
@@ -79,12 +77,12 @@
   background-color: var(--color-primary);
 }
 
-/* hover/active para Firefox (está limitado nas opções) */
+/* hover/active para Firefox*/
 .custom-scrollbar:hover {
   scrollbar-color: var(--color-primary) var(--scroll-track);
 }
 
-/* Auto-hide opcional (aparece só quando hover no container) */
+/* Auto-hide */
 .custom-scrollbar--autohide::-webkit-scrollbar-thumb {
   opacity: 0;
   transition: opacity .18s;
@@ -93,9 +91,6 @@
   opacity: 1;
 }
 
-/* Acessibilidade: quando o usuário prefere reduzida movimentação, melhorar contraste e remover transições */
 @media (prefers-reduced-motion: reduce) {
   .custom-scrollbar::-webkit-scrollbar-thumb { transition: none; }
 }
-
-/* OBS: para navegadores que não suportam personalização, ficará a barra padrão. */

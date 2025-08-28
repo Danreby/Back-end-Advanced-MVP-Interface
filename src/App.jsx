@@ -13,7 +13,7 @@ export default function App() {
       <Routes>
         <Route path="/Login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/profile" element={<Profile />} />
+        <Route path="/profile" element={isAuthenticated() ? <Profile /> : <Navigate to="/login" />} />
         <Route path="/" element={isAuthenticated() ? <Dashboard /> : <Navigate to="/login" />} />
       </Routes>
       <ToastContainer theme="dark" position="top-right" autoClose={3000} />
