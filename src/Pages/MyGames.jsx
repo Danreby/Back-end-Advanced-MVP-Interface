@@ -151,14 +151,17 @@ export default function MyGames() {
           });
           if (!res.ok) throw new Error(`status ${res.status}`);
           const data = await res.json();
+          let arr = null;
           if (Array.isArray(data)) {
-            const filtered = data.filter((g) => {
+            arr = data;
+          } else if (data && Array.isArray(data.results)) {
+            arr = data.results;
+          }
+          if (arr) {
+            const filtered = arr.filter((g) => {
               return Number(g.user_id) === Number(user.id) || Number(g.owner_id) === Number(user.id) || (g.user && Number(g.user.id) === Number(user.id));
             });
             got = { url: `${base}/games/all (filtered)`, data: filtered };
-          } else if (data && Array.isArray(data.results)) {
-            const filtered = data.results.filter((g) => Number(g.user_id) === Number(user.id) || Number(g.owner_id) === Number(user.id));
-            got = { url: `${base}/games/all.results (filtered)`, data: filtered };
           } else {
             throw new Error("Nenhum array retornado de /games/all");
           }
@@ -183,8 +186,69 @@ export default function MyGames() {
           }))
         : [];
 
+      let userReviews = [];
+      try {
+        const revRes = await fetch(`${base}/reviews/me?skip=0&limit=1000`, {
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        });
+        if (revRes.ok) {
+          const revData = await revRes.json();
+          if (Array.isArray(revData)) {
+            userReviews = revData;
+          } else if (revData && Array.isArray(revData.items)) {
+            userReviews = revData.items;
+          } else if (revData && Array.isArray(revData.results)) {
+            userReviews = revData.results;
+          } else if (revData && Array.isArray(revData.items)) {
+            userReviews = revData.items;
+          } else {
+            if (revData && revData.id) userReviews = [revData];
+          }
+        } else {
+          console.warn("Falha ao buscar reviews do usuário:", revRes.status);
+        }
+      } catch (err) {
+        console.warn("Erro ao buscar reviews do usuário:", err);
+      }
+
+      const reviewsByGame = {};
+      (userReviews || []).forEach((r) => {
+        const gid = r.game_id ?? (r.game && (r.game.id || r.game_id)) ?? null;
+        if (gid !== null && typeof gid !== "undefined") {
+          reviewsByGame[Number(gid)] = r;
+        } else {
+          if (r.external_guid) {
+            reviewsByGame[`ext:${r.external_guid}`] = r;
+          } else if (r.guid) {
+            reviewsByGame[`ext:${r.guid}`] = r;
+          }
+        }
+      });
+
+      const applied = normalized.map((g) => {
+        const gid = g.id != null ? Number(g.id) : null;
+        let review = null;
+        if (gid !== null && reviewsByGame.hasOwnProperty(gid)) {
+          review = reviewsByGame[gid];
+        } else if (g.external_guid && reviewsByGame.hasOwnProperty(`ext:${g.external_guid}`)) {
+          review = reviewsByGame[`ext:${g.external_guid}`];
+        } else if (g.externalGuid && reviewsByGame.hasOwnProperty(`ext:${g.externalGuid}`)) {
+          review = reviewsByGame[`ext:${g.externalGuid}`];
+        }
+
+        if (review) {
+          return {
+            ...g,
+            rating: typeof review.rating !== "undefined" && review.rating !== null ? Number(review.rating) : g.rating,
+            reviews_count: typeof g.reviews_count !== "undefined" ? Number(g.reviews_count) : 0,
+            user_review: review,
+          };
+        }
+        return g;
+      });
+
       if (mounted) {
-        setGames(normalized);
+        setGames(applied);
         setLoadingGames(false);
       }
     }
@@ -226,14 +290,12 @@ export default function MyGames() {
     return list;
   }, [games, debouncedQuery, statusFilter, minRating, sortBy]);
 
-  // handle view: fetch GiantBomb details (via gpApi) and open review modal
   async function handleViewGame(g) {
     setSelectedGame(null);
     setGbError(null);
     setLoadingGb(true);
 
     try {
-      // detect external guid
       let external =
         g.external_guid ||
         g.externalGuid ||
@@ -244,7 +306,6 @@ export default function MyGames() {
         g.external_id ||
         (g.external && (g.external.guid || g.external.external_guid));
 
-      // if not present, try fetching full record from backend
       if (!external && g.id) {
         try {
           const base = apiBase();
@@ -265,10 +326,8 @@ export default function MyGames() {
         throw new Error("external_guid do GiantBomb não encontrado para este jogo.");
       }
 
-      // gpApi.getGameDetails faz proxy para GiantBomb via seu backend
       const gbData = await getGameDetails(external);
 
-      // set selectedGame merged with giantbomb data
       setSelectedGame({ ...g, giantbomb: gbData });
       setDrawerOpen(false);
     } catch (err) {
@@ -283,7 +342,6 @@ export default function MyGames() {
     setSelectedGame(null);
   }
 
-  // import handler
   async function handleImport(item) {
     try {
       const token = localStorage.getItem("token");
@@ -293,7 +351,6 @@ export default function MyGames() {
       setSelectedGame(null);
     } catch (err) {
       console.error("Falha ao importar jogo:", err);
-      // opcional: toast
     }
   }
 

@@ -1,16 +1,16 @@
-// src/components/gb/GameReviewModal.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import Modal from "../ui/Modal";
 import GameCover from "./GameCover";
 import RatingStars from "../ui/RatingStars";
 import { toast } from "react-toastify";
+import { createReview, updateReview } from "../../API/reviews";
 
 function getApiBase() {
   return import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 }
 
-export default function GameReviewModal({ isOpen, onClose, game, onImport }) {
+export default function GameReviewModal({ isOpen, onClose, game, onImport, onSavedReview = null }) {
   const [loadingReview, setLoadingReview] = useState(false);
   const [review, setReview] = useState(null);
   const [reviewError, setReviewError] = useState(null);
@@ -18,6 +18,7 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport }) {
   const [editing, setEditing] = useState(false);
   const [draftRating, setDraftRating] = useState(0);
   const [draftText, setDraftText] = useState("");
+  const [draftIsPublic, setDraftIsPublic] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const [importing, setImporting] = useState(false);
@@ -37,6 +38,7 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport }) {
       setEditing(false);
       setDraftRating(0);
       setDraftText("");
+      setDraftIsPublic(true);
       setSaving(false);
       setImporting(false);
       setImportError(null);
@@ -72,7 +74,6 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport }) {
   const rawHtml = gb.deck || gb.description || game?.deck || game?.description || game?.summary || "";
   const sanitizedHtml = (rawHtml || "").replace(/<script[\s\S]*?<\/script>/gi, "").trim();
 
-  // fetch review
   useEffect(() => {
     if (!isOpen || !game) return;
     let mounted = true;
@@ -105,6 +106,7 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport }) {
             lastErr = `empty response (${url})`;
             continue;
           }
+
           if (Array.isArray(data)) {
             if (data.length === 0) {
               lastErr = `no reviews in array (${url})`;
@@ -116,12 +118,15 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport }) {
             found = found || data[0];
             got = found;
             break;
+          } else if (data.results && Array.isArray(data.results) && data.results.length) {
+            const candidate = data.results.find(r => String(r.game_id) === String(game.id)) || data.results[0];
+            got = candidate;
+            break;
+          } else if (data.items && Array.isArray(data.items) && data.items.length) {
+            const candidate = data.items.find(r => String(r.game_id) === String(game.id)) || data.items[0];
+            got = candidate;
+            break;
           } else {
-            if (data.results && Array.isArray(data.results) && data.results.length) {
-              const candidate = data.results.find(r => String(r.game_id) === String(game.id)) || data.results[0];
-              got = candidate;
-              break;
-            }
             got = data;
             break;
           }
@@ -136,10 +141,18 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport }) {
         setReviewError(lastErr || "Nenhuma review encontrada.");
         setDraftRating(0);
         setDraftText("");
+        setDraftIsPublic(true);
       } else {
-        setReview(got);
-        setDraftRating(Math.round(Number(got.rating || 0)));
-        setDraftText(got.review_text || got.text || got.body || "");
+        const normalized = {
+          ...got,
+          rating: typeof got.rating !== "undefined" ? Number(got.rating) : (got.review_text ? 0 : null),
+          review_text: got.review_text ?? got.text ?? got.body ?? null,
+          is_public: got.is_public ?? true,
+        };
+        setReview(normalized);
+        setDraftRating(Math.round(Number(normalized.rating || 0)));
+        setDraftText(normalized.review_text || "");
+        setDraftIsPublic(normalized.is_public ?? true);
       }
       setLoadingReview(false);
     }
@@ -148,58 +161,75 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport }) {
     return () => { mounted = false; };
   }, [isOpen, game]);
 
-    async function saveReview() {
+  async function saveReview(overrides = {}) {
+    const payload = {
+      rating: typeof overrides.rating !== "undefined" ? overrides.rating : draftRating,
+      review_text: typeof overrides.text !== "undefined" ? (overrides.text?.trim() || null) : (draftText?.trim() || null),
+      is_public: typeof overrides.is_public !== "undefined" ? overrides.is_public : draftIsPublic,
+    };
+
+    const creating = !review?.id;
+
     try {
-        const payload = {
-        rating: draftRating,
-        review_text: draftText?.trim() || null,
-        is_public: draftIsPublic,
+      let saved = null;
+      if (!creating) {
+        const res = await updateReview(review.id, payload);
+        saved = res;
+      } else {
+        if (!game?.id) {
+          throw new Error("game_id obrigatório para criar review.");
+        }
+        const res = await createReview(game.id, payload);
+        saved = res;
+      }
+
+      if (saved) {
+        const normalized = {
+          ...saved,
+          rating: typeof saved.rating !== "undefined" ? Number(saved.rating) : (saved.review_text ? 0 : null),
+          review_text: saved.review_text ?? saved.text ?? saved.body ?? null,
+          is_public: saved.is_public ?? true,
         };
 
-        let response;
-        if (review?.id) {
-        // Atualizar review existente
-        response = await api.put(`/reviews/${review.id}`, payload);
-        } else {
-        // Criar nova review (precisa mandar o game_id)
-        response = await api.post(`/reviews`, {
-            ...payload,
-            game_id: game.id,
-        });
+        setReview(normalized);
+        setDraftText(normalized.review_text || "");
+        setDraftRating(Math.round(Number(normalized.rating ?? 0)));
+        setDraftIsPublic(normalized.is_public ?? true);
+
+        try {
+          if (typeof onSavedReview === "function") {
+            onSavedReview(normalized, creating);
+          }
+        } catch (cbErr) {
+          console.warn("onSavedReview threw:", cbErr);
         }
+      }
 
-        // Atualiza estado com a review salva
-        const saved = response.data;
-        setReview(saved);
-        setDraftText(saved.review_text || "");
-        setDraftRating(saved.rating || 0);
-        setDraftIsPublic(saved.is_public ?? true);
-
+      return saved;
     } catch (err) {
-        console.error("Erro ao autosave:", err);
-        toast.error("Erro ao salvar review");
+      console.error("Erro ao autosave:", err);
+      throw err;
     }
-    }
+  }
 
-
-  // Manual save from editor
   async function handleSaveReview() {
     if (!game) return;
     setSaving(true);
     setReviewError(null);
     try {
-      const saved = await saveReview({ rating: draftRating, text: draftText });
+      const saved = await saveReview({ rating: draftRating, text: draftText, is_public: draftIsPublic });
       setReview(saved);
       setEditing(false);
+      toast.success("Review salva");
     } catch (err) {
       console.error("Erro ao salvar review:", err);
       setReviewError(err.message || String(err));
+      toast.error("Erro ao salvar review");
     } finally {
       setSaving(false);
     }
   }
 
-  // Auto-save (debounced) when user changes stars
   async function scheduleAutoSave(newRating) {
     if (!game) return;
     if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current);
@@ -209,30 +239,27 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport }) {
       setAutoSaving(true);
       setAutoSaveSuccess(false);
       try {
-        const saved = await saveReview({ rating: newRating, text: draftText || (review?.text || "") });
+        const saved = await saveReview({ rating: newRating, text: draftText || (review?.review_text || "") });
         setReview(saved);
-        setDraftText(saved.review_text || draftText || "");
+        setDraftText((saved && (saved.review_text ?? saved.text ?? saved.body)) || draftText || "");
         setAutoSaveSuccess(true);
         setTimeout(() => setAutoSaveSuccess(false), 1500);
       } catch (err) {
         console.error("Erro ao autosave:", err);
         setReviewError(err.message || String(err));
+        toast.error("Erro ao salvar review");
       } finally {
         setAutoSaving(false);
       }
     }, 800);
   }
 
-  // Called when stars change
   function handleStarsChange(newVal) {
     const intVal = Math.round(Number(newVal || 0));
     setDraftRating(intVal);
-    // optionally open editor: commented so it doesn't force open
-    // setEditing(true);
     scheduleAutoSave(intVal);
   }
 
-  // Import handler
   async function handleImportClick() {
     if (typeof onImport !== "function") return;
     setImporting(true);
@@ -260,8 +287,16 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport }) {
     initial: { opacity: 0, y: 8, scale: 0.996 },
     animate: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 240, damping: 20 } },
   };
-
   const displayRating = (review && typeof review.rating !== "undefined") ? Math.round(Number(review.rating)) : (gb && typeof gb.rating !== "undefined" ? Math.round(Number(gb.rating)) : 0);
+
+  const reviewRating = review ? Math.round(Number(review.rating || 0)) : null;
+
+  const effectiveRating = editing
+    ? draftRating
+    : (typeof reviewRating === "number" && reviewRating !== null
+        ? (Number(draftRating) !== Number(reviewRating) ? draftRating : reviewRating)
+        : (Number(draftRating) !== 0 ? draftRating : displayRating)
+      );
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg" ariaLabelledBy="game-title">
@@ -300,7 +335,7 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport }) {
 
                   <div className="mt-3 flex flex-wrap gap-2 items-center">
                     <RatingStars
-                      value={editing ? draftRating : (review ? Math.round(Number(review.rating || 0)) : displayRating)}
+                      value={effectiveRating}
                       onChange={handleStarsChange}
                       readOnly={false}
                       max={10}
@@ -313,7 +348,7 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport }) {
                     </div>
 
                     <div className="ml-2 text-sm text-gray-600 dark:text-gray-300">
-                      { (review && typeof review.rating !== "undefined") ? <span>· Sua nota: <strong>{Math.round(Number(review.rating || 0))}</strong></span> : (gb && typeof gb.rating !== "undefined" ? <span>· GB: <strong>{Math.round(Number(gb.rating || 0))}</strong></span> : null) }
+                      { (review && typeof review.rating !== "undefined") ? <span>· Sua nota: <strong>{Math.round(Number(review.rating || 0))}</strong></span> : (gb && typeof gb.rating !== "undefined" ? <span>· GB: <strong>{Math.round(Number(gb.rating))}</strong></span> : null) }
                     </div>
 
                     { (review && typeof review.reviews_count !== "undefined") && <div className="text-xs text-gray-500 ml-2">· {review.reviews_count} reviews</div> }
@@ -346,7 +381,7 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport }) {
 
                   <div className="mt-6 border-t pt-4">
                     <div className="flex items-center justify-between">
-                      <div className="text-sm font-medium">Sua review</div>
+                      <div className="text-sm font-medium dark:text-white">Sua review</div>
                       <div className="text-xs text-gray-500">
                         {loadingReview ? "Carregando..." : (review ? `Última: ${review.updated_at ? new Date(review.updated_at).toLocaleString() : (review.created_at ? new Date(review.created_at).toLocaleString() : "")}` : "Nenhuma review")}
                       </div>
@@ -362,7 +397,17 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport }) {
                           <div className="text-sm text-gray-700 dark:text-gray-200">{review.review_text || review.text || review.body || <em>Sem texto</em>}</div>
                           <div className="flex items-center gap-3">
                             <div className="text-xs text-gray-500">Nota: <strong>{review.rating ?? "—"}</strong></div>
-                            <button onClick={() => { setEditing(true); setDraftRating(Math.round(Number(review.rating || 0))); setDraftText(review.text || review.review_text || review.body || ""); }} className="text-xs px-2 py-1 border rounded">Editar</button>
+                            <button
+                              onClick={() => {
+                                setEditing(true);
+                                setDraftRating(Math.round(Number(review.rating || 0)));
+                                setDraftText(review.text || review.review_text || review.body || "");
+                                setDraftIsPublic(review.is_public ?? true);
+                              }}
+                              className="text-xs px-2 py-1 border rounded dark:text-white"
+                            >
+                              Editar
+                            </button>
                           </div>
                         </div>
                       ) : (
@@ -390,14 +435,6 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport }) {
                         </div>
                       )}
                     </div>
-                  </div>
-
-                  <div className="mt-6 flex flex-wrap gap-3 items-center">
-                    <button onClick={handleImportClick} disabled={importing} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-indigo-600 text-white text-sm hover:bg-indigo-700 disabled:opacity-60">
-                      {importing ? "Importando..." : "Importar"}
-                    </button>
-
-                    {importError && <div className="text-sm text-red-500">{importError}</div>}
                   </div>
                 </div>
               </div>
