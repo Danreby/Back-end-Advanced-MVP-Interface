@@ -1,4 +1,3 @@
-// src/pages/MyGames.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { getProfile } from "../API/user";
@@ -89,25 +88,36 @@ export default function MyGames() {
     if (!user) return;
     let mounted = true;
 
+    function isOwnedByUser(g, userId) {
+      try {
+        if (g == null) return false;
+        if (typeof g.user_id !== "undefined" && g.user_id !== null) return Number(g.user_id) === Number(userId);
+        if (g.user && typeof g.user.id !== "undefined" && g.user.id !== null) return Number(g.user.id) === Number(userId);
+        if (typeof g.owner_id !== "undefined" && g.owner_id !== null) return Number(g.owner_id) === Number(userId);
+        return false;
+      } catch (e) {
+        return false;
+      }
+    }
+
     async function fetchMyGames() {
       setLoadingGames(true);
       setGamesError(null);
 
       const base = apiBase();
       const token = localStorage.getItem("token");
-      const endpoints = [
-        `${base}/games/my`,
-        `${base}/games/user/${user.id}`,
+
+      const tryEndpoints = [
         `${base}/users/${user.id}/games`,
         `${base}/games?user_id=${user.id}`,
-        `${base}/games/all`,
+        `${base}/games/my`,
       ];
 
       let got = null;
       let lastError = null;
 
-      for (let i = 0; i < endpoints.length; i++) {
-        const url = endpoints[i];
+      for (let i = 0; i < tryEndpoints.length; i++) {
+        const url = tryEndpoints[i];
         try {
           const res = await fetch(url, {
             headers: {
@@ -152,19 +162,13 @@ export default function MyGames() {
           if (!res.ok) throw new Error(`status ${res.status}`);
           const data = await res.json();
           let arr = null;
-          if (Array.isArray(data)) {
-            arr = data;
-          } else if (data && Array.isArray(data.results)) {
-            arr = data.results;
-          }
-          if (arr) {
-            const filtered = arr.filter((g) => {
-              return Number(g.user_id) === Number(user.id) || Number(g.owner_id) === Number(user.id) || (g.user && Number(g.user.id) === Number(user.id));
-            });
-            got = { url: `${base}/games/all (filtered)`, data: filtered };
-          } else {
-            throw new Error("Nenhum array retornado de /games/all");
-          }
+          if (Array.isArray(data)) arr = data;
+          else if (data && Array.isArray(data.results)) arr = data.results;
+
+          if (!arr) throw new Error("Nenhum array retornado de /games/all");
+
+          const filtered = arr.filter((g) => isOwnedByUser(g, user.id));
+          got = { url: `${base}/games/all (filtered)`, data: filtered };
         } catch (err) {
           setGamesError(`Falha ao carregar jogos: ${lastError || err.message || err}`);
           setGames([]);
@@ -199,10 +203,8 @@ export default function MyGames() {
             userReviews = revData.items;
           } else if (revData && Array.isArray(revData.results)) {
             userReviews = revData.results;
-          } else if (revData && Array.isArray(revData.items)) {
-            userReviews = revData.items;
-          } else {
-            if (revData && revData.id) userReviews = [revData];
+          } else if (revData && revData.id) {
+            userReviews = [revData];
           }
         } else {
           console.warn("Falha ao buscar reviews do usuário:", revRes.status);
@@ -247,8 +249,10 @@ export default function MyGames() {
         return g;
       });
 
+      const finalList = Array.isArray(applied) ? applied.filter((g) => isOwnedByUser(g, user.id)) : [];
+
       if (mounted) {
-        setGames(applied);
+        setGames(finalList);
         setLoadingGames(false);
       }
     }
@@ -347,7 +351,7 @@ export default function MyGames() {
       const token = localStorage.getItem("token");
       const newGame = await importGameToCatalog(item, token);
       if (!newGame) return;
-      setGames(prev => [newGame, ...prev.filter(g => g.id !== newGame.id)]);
+      setGames((prev) => [newGame, ...prev.filter((g) => g.id !== newGame.id)]);
       setSelectedGame(null);
     } catch (err) {
       console.error("Falha ao importar jogo:", err);
