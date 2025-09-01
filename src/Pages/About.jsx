@@ -1,10 +1,41 @@
-// src/pages/About.jsx
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { getProfile } from "../API/user";
 import { Navbar } from "../components/common/NavBar";
-import { logout } from "../API/auth";
+import { logout, isAuthenticated } from "../API/auth";
+import LoadingOverlay from "../components/common/LoadingOverlay";
 
 export default function About() {
+  const [user, setUser] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const token = isAuthenticated();
+    if (!token) {
+      window.location.href = "/login";
+      return;
+    }
+
+    getProfile()
+      .then((u) => {
+        if (!mounted) return;
+        setUser(u);
+      })
+      .catch(() => {
+        if (mounted) {
+          localStorage.removeItem("token");
+          window.location.href = "/login";
+        }
+      })
+      .finally(() => mounted && setLoadingProfile(false));
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const cardVariants = {
     hidden: { opacity: 0, y: 18, scale: 0.99 },
     show: {
@@ -15,9 +46,27 @@ export default function About() {
     },
   };
 
+  if (loadingProfile) {
+    return (
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-slate-900 dark:via-indigo-950 dark:to-black transition-colors duration-300">
+        <motion.div
+          className="absolute -left-20 -top-12 w-80 h-80 rounded-full filter blur-3xl opacity-40 bg-indigo-200/40 dark:bg-indigo-900/60"
+          animate={{ y: [0, -18, 0], x: [0, 8, -8, 0], rotate: [0, 2, -2, 0] }}
+          transition={{ duration: 8, repeat: Infinity }}
+        />
+        <motion.div
+          className="absolute right-20 -bottom-24 w-96 h-96 rounded-full filter blur-3xl opacity-30 bg-emerald-200/30 dark:bg-sky-900/40"
+          animate={{ x: [0, -30, 0], y: [0, -15, 0] }}
+          transition={{ duration: 10, repeat: Infinity }}
+        />
+
+        <LoadingOverlay open={true} text={"Carregando perfil..."} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-slate-900 dark:via-indigo-950 dark:to-black transition-colors duration-300">
-      {/* BG Blobs animados */}
       <motion.div
         className="absolute -left-20 -top-12 w-80 h-80 rounded-full filter blur-3xl opacity-40 bg-indigo-200/40 dark:bg-indigo-900/60"
         animate={{ y: [0, -18, 0], x: [0, 8, -8, 0], rotate: [0, 2, -2, 0] }}
@@ -34,17 +83,15 @@ export default function About() {
         transition={{ duration: 7, repeat: Infinity }}
       />
 
-      {/* Navbar */}
-      <Navbar onLogout={logout} />
+      <Navbar user={user} onLogout={logout} />
 
-      {/* Conteúdo principal */}
       <main className="max-w-5xl mx-auto p-6 text-gray-900 dark:text-gray-100">
         <motion.h1
           className="text-3xl font-bold mb-4"
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          Sobre Nós
+          Sobre
         </motion.h1>
 
         <motion.div
@@ -54,24 +101,45 @@ export default function About() {
           animate="show"
         >
           <p className="text-lg leading-relaxed">
-            Este projeto foi desenvolvido para <span className="font-semibold">[seu objetivo aqui]</span>.  
-            Nosso foco é oferecer uma experiência simples, moderna e acessível, utilizando as melhores práticas de desenvolvimento web.
+            Olá, <span className="font-semibold">{user?.name}</span> 👋  
+            Deixe eu contar um pouco sobre este projeto.
           </p>
 
           <p className="mt-4 text-lg leading-relaxed">
-            Tecnologias principais: <span className="font-semibold">React</span>,{" "}
-            <span className="font-semibold">Tailwind</span>,{" "}
-            <span className="font-semibold">Framer Motion</span> e{" "}
-            <span className="font-semibold">Laravel</span>.
+            Este projeto acadêmico foi desenvolvido para a entrega do MVP da disciplina de {" "}
+            <span className="font-semibold">Back-End Avançado</span> na <span className="font-semibold">PUC-RIO</span>. {" "}  
+            A ideia surgiu da minha paixão por jogos e a necessidade de organizar minha coleção.  
+            Assim, nasceu o <span className="font-semibold">CatGame</span>, um catálogo pessoal de jogos com avaliações e filtros.
           </p>
 
           <p className="mt-4 text-lg leading-relaxed">
-            Criado por <span className="font-semibold">[Seu Nome]</span> e sempre em constante evolução 🚀.
+            Ele utiliza as tecnologias:
+            <div className="grid grid-cols-2 sm:grid-cols-2 gap-2">
+                <ul className="list-disc list-inside mt-2 border rounded-lg p-2">Front-End:
+                    <li>React para a interface do usuário;</li>
+                    <li>Tailwind CSS para estilização;</li>
+                    <li>Node.js com Express no backend;</li>
+                    <li>JWT para autenticação segura.</li>
+                </ul>
+                <ul className="list-disc list-inside mt-2 border rounded-lg p-2">Back-End:
+                    <li>Python com Flask para a API;</li>
+                    <li>SQLAlchemy para ORM;</li>
+                    <li>MySQL como banco de dados;</li>
+                    <li>Docker para conteinerização.</li>
+                </ul>
+            </div>
+          </p>
+
+          <p className="mt-4 text-lg leading-relaxed">
+            Criado por <span className="font-semibold">Bernardo Santos Rolim</span>, sempre
+            buscando evoluir 🚀
+          </p>
+          <p className="mt-1 text-sm leading-relaxed">
+            Pode acessar meu portifólio e me contatar clicando <a href="https://danreby.github.io/danreby-portifolio/" target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-600 hover:underline">aqui</a>
           </p>
         </motion.div>
       </main>
 
-      {/* Elementos de detalhe no fundo */}
       <div className="pointer-events-none absolute inset-0 z-30">
         <motion.div
           animate={{ rotate: [0, 6, -6, 0] }}
