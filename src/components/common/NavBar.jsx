@@ -47,7 +47,7 @@ export function Navbar({ user, onLogout, onNavigate }) {
         onClick={() => handleNavClick(href)}
         className={`px-3 py-2 rounded-md text-sm ${
           isActive
-            ? "border-b-indigo-600 border-b-2 text-white"
+            ? "border-b-indigo-600 border-b-2 dark:text-white"
             : "hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-white"
         }`}
       >
@@ -67,7 +67,7 @@ export function Navbar({ user, onLogout, onNavigate }) {
               aria-label="Ir para Home"
             >
               <div className="h-9 w-9 rounded-md bg-indigo-600 flex items-center justify-center text-white font-bold">
-                GC
+                CG
               </div>
               <span className="font-semibold text-lg text-gray-900 dark:text-gray-100">CatGame</span>
             </button>
@@ -75,7 +75,7 @@ export function Navbar({ user, onLogout, onNavigate }) {
             <nav className="hidden sm:flex gap-2 items-center" aria-label="Navegação principal">
               {navButton("/", "Dashboard")}
               {navButton("/games", "Meus Jogos")}
-              {navButton("/games/about", "Sobre")}
+              {navButton("/about", "Sobre")}
             </nav>
           </div>
 
@@ -137,7 +137,7 @@ export function Navbar({ user, onLogout, onNavigate }) {
           <div className="sm:hidden mt-2 pb-3 space-y-1">
             {navButton("/", "Dashboard")}
             {navButton("/games", "Meus Jogos")}
-            {navButton("/games/about", "Sobre")}
+            {navButton("/about", "Sobre")}
             <hr className="border-gray-200 dark:border-gray-700" />
             {user && (
               <>
