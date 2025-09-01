@@ -118,7 +118,7 @@ export default function About() {
                 <ul className="list-disc list-inside mt-2 border rounded-lg p-2">Front-End:
                     <li>React para a interface do usuário;</li>
                     <li>Tailwind CSS para estilização;</li>
-                    <li>Node.js com Express no backend;</li>
+                    {/* <li>Node.js</li> */}
                     <li>JWT para autenticação segura.</li>
                 </ul>
                 <ul className="list-disc list-inside mt-2 border rounded-lg p-2">Back-End:
@@ -131,11 +131,11 @@ export default function About() {
           </p>
 
           <p className="mt-4 text-lg leading-relaxed">
-            Criado por <span className="font-semibold">Bernardo Santos Rolim</span>, sempre
-            buscando evoluir 🚀
+            Criado por <span className="font-semibold">Bernardo Santos Rolim</span>, um pequeno caçador
           </p>
+          {/* noopener e noreferer para o navegador não saber de onde veio, deve ser usado junto de target */}
           <p className="mt-1 text-sm leading-relaxed">
-            Pode acessar meu portifólio e me contatar clicando <a href="https://danreby.github.io/danreby-portifolio/" target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-600 hover:underline">aqui</a>
+            Pode acessar meu portifólio e me contatar clicando <a href='https://danreby.github.io/danreby-portifolio/' target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline">aqui</a>
           </p>
         </motion.div>
       </main>
