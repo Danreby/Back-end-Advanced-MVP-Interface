@@ -423,14 +423,14 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport, onSav
                               showTooltip={true}
                             />
                             <div className="ml-auto flex gap-2">
-                              <button onClick={() => setEditing(false)} disabled={saving} className="text-xs px-2 py-1 border rounded">Cancelar</button>
+                              <button onClick={() => setEditing(false)} disabled={saving} className="text-xs px-2 py-1 border rounded dark:text-white">Cancelar</button>
                               <button onClick={handleSaveReview} disabled={saving} className="text-xs px-3 py-1 bg-indigo-600 text-white rounded">
                                 {saving ? "Salvando..." : (review ? "Salvar" : "Criar")}
                               </button>
                             </div>
                           </div>
 
-                          <textarea rows={4} value={draftText} onChange={(e) => setDraftText(e.target.value)} className="w-full p-2 border rounded text-sm" placeholder="Escreva sua review..." />
+                          <textarea rows={4} value={draftText} onChange={(e) => setDraftText(e.target.value)} className="w-full p-2 dark:text-white dark:bg-transparent border rounded text-sm" placeholder="Escreva sua review..." />
                           {reviewError && <div className="text-sm text-red-500">{reviewError}</div>}
                         </div>
                       )}

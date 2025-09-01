@@ -132,12 +132,12 @@ export default function GameList({ games, onView, onEdit, loadAll }) {
                   >
                     Ver
                   </button> */}
-                  <button
+                  {/* <button
                     onClick={(e) => { e.stopPropagation(); onEdit && onEdit(g); }}
                     className="text-sm px-2 py-1 bg-indigo-600 text-white rounded"
                   >
                     Editar
-                  </button>
+                  </button> */}
                 </div>
               </div>
             </li>

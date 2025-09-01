@@ -117,7 +117,7 @@ export default function ReviewList() {
       ) : (
         <div className="space-y-6">
           {groups.map((g) => (
-            <div key={g.gameName} className="p-4 border rounded">
+            <div key={g.gameName} className="p-4 border rounded dark:border-gray-700">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="h-12 w-12 rounded overflow-hidden bg-gray-100 flex items-center justify-center text-sm font-medium text-gray-700 dark:bg-gray-700">
@@ -140,10 +140,10 @@ export default function ReviewList() {
                   const userName = r?.user?.name ?? r.user_name ?? "—";
                   const createdLabel = r.created_at ? (new Date(r.created_at)).toLocaleDateString() : "";
                   return (
-                    <li key={r.id ?? `${r.user_id}_${r.game_id}`} className="flex items-start justify-between gap-4 p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-50/10">
+                    <li key={r.id ?? `${r.user_id}_${r.game_id}`} className="flex items-start border-t dark:border-gray-700 justify-between gap-4 p-2 hover:bg-gray-200 dark:hover:bg-gray-50/10">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-700">
+                          <div className="h-8 w-8 rounded bg-gray-700 text-white dark:bg-gray-100 flex items-center justify-center text-xs font-medium dark:text-gray-700">
                             {(userName || "-").slice(0,2).toUpperCase()}
                           </div>
                           <div className="min-w-0">
