@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { getProfile } from "../API/user";
 import { Navbar } from "../components/common/NavBar";
@@ -11,6 +11,79 @@ import MyGamesFilter from "../components/games/MyGamesFilter";
 import FilterButton from "../components/common/FilterButton";
 import { getGameDetails, importGameToCatalog } from "../API/gbApi";
 
+function apiBase() {
+  try {
+    if (import.meta && import.meta.env && import.meta.env.VITE_API_URL) {
+      return String(import.meta.env.VITE_API_URL).replace(/\/+$/, "");
+    }
+  } catch (e) {}
+  try {
+    if (typeof process !== "undefined" && process.env && process.env.REACT_APP_API_URL) {
+      return String(process.env.REACT_APP_API_URL).replace(/\/+$/, "");
+    }
+  } catch (e) {}
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return "http://127.0.0.1:8000";
+    }
+    return window.location.origin.replace(/\/+$/, "");
+  }
+  return "";
+}
+
+function useDebounced(value, delay = 250) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
+
+function normalizeGamesArray(arr = []) {
+  return arr.map((g) => ({
+    ...g,
+    rating:
+      typeof g.avg_rating !== "undefined" && g.avg_rating !== null
+        ? Number(g.avg_rating)
+        : typeof g.rating !== "undefined"
+        ? Number(g.rating || 0)
+        : 0,
+    reviews_count: typeof g.reviews_count !== "undefined" ? Number(g.reviews_count) : 0,
+  }));
+}
+
+function isOwnedByUser(g, userId) {
+  try {
+    if (g == null) return false;
+    if (typeof g.user_id !== "undefined" && g.user_id !== null) return Number(g.user_id) === Number(userId);
+    if (g.user && typeof g.user.id !== "undefined" && g.user.id !== null) return Number(g.user.id) === Number(userId);
+    if (typeof g.owner_id !== "undefined" && g.owner_id !== null) return Number(g.owner_id) === Number(userId);
+    return false;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function fetchUserReviews(base, token) {
+  const reviews = [];
+  try {
+    const res = await fetch(`${base}/reviews/me?skip=0&limit=1000`, {
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    });
+    if (!res.ok) return reviews;
+    const data = await res.json();
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.items)) return data.items;
+    if (data && Array.isArray(data.results)) return data.results;
+    if (data && data.id) return [data];
+  } catch (err) {
+    console.warn("Erro ao buscar reviews do usuário:", err);
+  }
+  return reviews;
+}
+
 export default function MyGames() {
   const [user, setUser] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -22,7 +95,7 @@ export default function MyGames() {
   const [selectedGame, setSelectedGame] = useState(null);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const debouncedQuery = useDebounced(searchQuery, 250);
   const [statusFilter, setStatusFilter] = useState("all");
   const [minRating, setMinRating] = useState(0);
   const [sortBy, setSortBy] = useState("recent");
@@ -32,13 +105,7 @@ export default function MyGames() {
   const [gbError, setGbError] = useState(null);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedQuery(searchQuery.trim()), 250);
-    return () => clearTimeout(t);
-  }, [searchQuery]);
-
-  useEffect(() => {
     let mounted = true;
-
     const token = isAuthenticated();
     if (!token) {
       window.location.href = "/login";
@@ -63,49 +130,15 @@ export default function MyGames() {
     };
   }, []);
 
-  function apiBase() {
-    try {
-      if (import.meta && import.meta.env && import.meta.env.VITE_API_URL) {
-        return String(import.meta.env.VITE_API_URL).replace(/\/+$/, "");
-      }
-    } catch (e) {}
-    try {
-      if (typeof process !== "undefined" && process.env && process.env.REACT_APP_API_URL) {
-        return String(process.env.REACT_APP_API_URL).replace(/\/+$/, "");
-      }
-    } catch (e) {}
-    if (typeof window !== "undefined") {
-      const hostname = window.location.hostname;
-      if (hostname === "localhost" || hostname === "127.0.0.1") {
-        return "http://127.0.0.1:8000";
-      }
-      return window.location.origin.replace(/\/+$/, "");
-    }
-    return "";
-  }
-
   useEffect(() => {
     if (!user) return;
     let mounted = true;
+    const base = apiBase();
+    const token = localStorage.getItem("token");
 
-    function isOwnedByUser(g, userId) {
-      try {
-        if (g == null) return false;
-        if (typeof g.user_id !== "undefined" && g.user_id !== null) return Number(g.user_id) === Number(userId);
-        if (g.user && typeof g.user.id !== "undefined" && g.user.id !== null) return Number(g.user.id) === Number(userId);
-        if (typeof g.owner_id !== "undefined" && g.owner_id !== null) return Number(g.owner_id) === Number(userId);
-        return false;
-      } catch (e) {
-        return false;
-      }
-    }
-
-    async function fetchMyGames() {
+    async function tryFetch() {
       setLoadingGames(true);
       setGamesError(null);
-
-      const base = apiBase();
-      const token = localStorage.getItem("token");
 
       const tryEndpoints = [
         `${base}/users/${user.id}/games`,
@@ -120,10 +153,7 @@ export default function MyGames() {
         const url = tryEndpoints[i];
         try {
           const res = await fetch(url, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
           });
           if (!res.ok) {
             lastError = `status ${res.status} (${url})`;
@@ -154,10 +184,7 @@ export default function MyGames() {
       if (!got) {
         try {
           const res = await fetch(`${base}/games/all`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
           });
           if (!res.ok) throw new Error(`status ${res.status}`);
           const data = await res.json();
@@ -170,6 +197,7 @@ export default function MyGames() {
           const filtered = arr.filter((g) => isOwnedByUser(g, user.id));
           got = { url: `${base}/games/all (filtered)`, data: filtered };
         } catch (err) {
+          if (!mounted) return;
           setGamesError(`Falha ao carregar jogos: ${lastError || err.message || err}`);
           setGames([]);
           setLoadingGames(false);
@@ -177,42 +205,9 @@ export default function MyGames() {
         }
       }
 
-      const normalized = Array.isArray(got.data)
-        ? got.data.map((g) => ({
-            ...g,
-            rating:
-              typeof g.avg_rating !== "undefined" && g.avg_rating !== null
-                ? Number(g.avg_rating)
-                : typeof g.rating !== "undefined"
-                ? Number(g.rating || 0)
-                : 0,
-            reviews_count: typeof g.reviews_count !== "undefined" ? Number(g.reviews_count) : 0,
-          }))
-        : [];
+      const normalized = normalizeGamesArray(got.data || []);
 
-      let userReviews = [];
-      try {
-        const revRes = await fetch(`${base}/reviews/me?skip=0&limit=1000`, {
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        });
-        if (revRes.ok) {
-          const revData = await revRes.json();
-          if (Array.isArray(revData)) {
-            userReviews = revData;
-          } else if (revData && Array.isArray(revData.items)) {
-            userReviews = revData.items;
-          } else if (revData && Array.isArray(revData.results)) {
-            userReviews = revData.results;
-          } else if (revData && revData.id) {
-            userReviews = [revData];
-          }
-        } else {
-          console.warn("Falha ao buscar reviews do usuário:", revRes.status);
-        }
-      } catch (err) {
-        console.warn("Erro ao buscar reviews do usuário:", err);
-      }
-
+      const userReviews = await fetchUserReviews(base, token);
       const reviewsByGame = {};
       (userReviews || []).forEach((r) => {
         const gid = r.game_id ?? (r.game && (r.game.id || r.game_id)) ?? null;
@@ -230,11 +225,11 @@ export default function MyGames() {
       const applied = normalized.map((g) => {
         const gid = g.id != null ? Number(g.id) : null;
         let review = null;
-        if (gid !== null && reviewsByGame.hasOwnProperty(gid)) {
+        if (gid !== null && Object.prototype.hasOwnProperty.call(reviewsByGame, gid)) {
           review = reviewsByGame[gid];
-        } else if (g.external_guid && reviewsByGame.hasOwnProperty(`ext:${g.external_guid}`)) {
+        } else if (g.external_guid && Object.prototype.hasOwnProperty.call(reviewsByGame, `ext:${g.external_guid}`)) {
           review = reviewsByGame[`ext:${g.external_guid}`];
-        } else if (g.externalGuid && reviewsByGame.hasOwnProperty(`ext:${g.externalGuid}`)) {
+        } else if (g.externalGuid && Object.prototype.hasOwnProperty.call(reviewsByGame, `ext:${g.externalGuid}`)) {
           review = reviewsByGame[`ext:${g.externalGuid}`];
         }
 
@@ -257,7 +252,7 @@ export default function MyGames() {
       }
     }
 
-    fetchMyGames();
+    tryFetch();
 
     return () => {
       mounted = false;
@@ -294,82 +289,83 @@ export default function MyGames() {
     return list;
   }, [games, debouncedQuery, statusFilter, minRating, sortBy]);
 
-  async function handleViewGame(g) {
-    setSelectedGame(null);
-    setGbError(null);
-    setLoadingGb(true);
-
-    try {
-      let external =
-        g.external_guid ||
-        g.externalGuid ||
-        g.externalId ||
-        g.guid ||
-        g.giantbomb_guid ||
-        g.giantbomb_id ||
-        g.external_id ||
-        (g.external && (g.external.guid || g.external.external_guid));
-
-      if (!external && g.id) {
-        try {
-          const base = apiBase();
-          const token = localStorage.getItem("token");
-          const res = await fetch(`${base}/games/${g.id}`, {
-            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-          });
-          if (res.ok) {
-            const data = await res.json();
-            external = data.external_guid || data.externalGuid || data.guid || data.giantbomb_id || data.external_id || null;
-          }
-        } catch (e) {
-          console.warn("Erro ao buscar jogo no backend:", e);
-        }
-      }
-
-      if (!external) {
-        throw new Error("external_guid do GiantBomb não encontrado para este jogo.");
-      }
-
-      const gbData = await getGameDetails(external);
-
-      setSelectedGame({ ...g, giantbomb: gbData });
-      setDrawerOpen(false);
-    } catch (err) {
-      console.error("Erro ao carregar detalhes do GiantBomb:", err);
-      setGbError(err.message || String(err));
-    } finally {
-      setLoadingGb(false);
-    }
-  }
-
-  function handleCloseModal() {
-    setSelectedGame(null);
-  }
-
-  async function handleImport(item) {
-    try {
-      const token = localStorage.getItem("token");
-      const newGame = await importGameToCatalog(item, token);
-      if (!newGame) return;
-      setGames((prev) => [newGame, ...prev.filter((g) => g.id !== newGame.id)]);
+  const handleViewGame = useCallback(
+    async (g) => {
       setSelectedGame(null);
-    } catch (err) {
-      console.error("Falha ao importar jogo:", err);
-    }
-  }
+      setGbError(null);
+      setLoadingGb(true);
+      try {
+        let external =
+          g.external_guid ||
+          g.externalGuid ||
+          g.externalId ||
+          g.guid ||
+          g.giantbomb_guid ||
+          g.giantbomb_id ||
+          g.external_id ||
+          (g.external && (g.external.guid || g.external.external_guid));
 
-  function clearFilters() {
+        if (!external && g.id) {
+          try {
+            const base = apiBase();
+            const token = localStorage.getItem("token");
+            const res = await fetch(`${base}/games/${g.id}`, {
+              headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            });
+            if (res.ok) {
+              const data = await res.json();
+              external = data.external_guid || data.externalGuid || data.guid || data.giantbomb_id || data.external_id || null;
+            }
+          } catch (e) {
+            console.warn("Erro ao buscar jogo no backend:", e);
+          }
+        }
+
+        if (!external) {
+          throw new Error("external_guid do GiantBomb não encontrado para este jogo.");
+        }
+
+        const gbData = await getGameDetails(external);
+        setSelectedGame({ ...g, giantbomb: gbData });
+        setDrawerOpen(false);
+      } catch (err) {
+        console.error("Erro ao carregar detalhes do GiantBomb:", err);
+        setGbError(err.message || String(err));
+      } finally {
+        setLoadingGb(false);
+      }
+    },
+    [setSelectedGame]
+  );
+
+  const handleCloseModal = useCallback(() => setSelectedGame(null), []);
+
+  const handleImport = useCallback(
+    async (item) => {
+      try {
+        const token = localStorage.getItem("token");
+        const newGame = await importGameToCatalog(item, token);
+        if (!newGame) return;
+        setGames((prev) => [newGame, ...prev.filter((g) => g.id !== newGame.id)]);
+        setSelectedGame(null);
+      } catch (err) {
+        console.error("Falha ao importar jogo:", err);
+      }
+    },
+    [setGames]
+  );
+
+  const clearFilters = useCallback(() => {
     setSearchQuery("");
-    setDebouncedQuery("");
     setStatusFilter("all");
     setMinRating(0);
     setSortBy("recent");
-  }
+  }, []);
 
-  const cardVariants = {
-    hidden: { opacity: 0, y: 18, scale: 0.99 },
-    show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 280, damping: 26 } },
-  };
+  const cardVariants = useMemo(
+    () => ({ hidden: { opacity: 0, y: 18, scale: 0.99 }, show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 280, damping: 26 } } }),
+    []
+  );
 
   if (loadingProfile) {
     return (
@@ -391,7 +387,9 @@ export default function MyGames() {
 
       <main className="max-w-7xl mx-auto p-6 text-gray-900 dark:text-gray-100">
         <div className="flex gap-2 items-center">
-          <motion.h1 className="text-2xl font-bold" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>Games</motion.h1>
+          <motion.h1 className="text-2xl font-bold" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>
+            Games
+          </motion.h1>
           <div className="ml-auto text-sm text-gray-500 dark:text-gray-400">Mostrando todos os jogos do seu perfil</div>
         </div>
 
@@ -440,12 +438,7 @@ export default function MyGames() {
         </div>
       </main>
 
-      <GameReviewModal
-        isOpen={!!selectedGame}
-        onClose={handleCloseModal}
-        game={selectedGame}
-        onImport={(item) => handleImport(item)}
-      />
+      <GameReviewModal isOpen={!!selectedGame} onClose={handleCloseModal} game={selectedGame} onImport={(item) => handleImport(item)} />
 
       <MyGamesFilter
         open={drawerOpen}
