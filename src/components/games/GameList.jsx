@@ -2,47 +2,53 @@ import React, { useEffect, useState } from "react";
 import RatingStars from "../ui/RatingStars";
 
 export default function GameList({ games, onView, onEdit, loadAll }) {
-  const [list, setList] = useState(() => {
-    if (Array.isArray(games)) return games;
-    if (games && Array.isArray(games.items)) return games.items;
-    return [];
-  });
+  const [list, setList] = useState(() => Array.isArray(games) ? games : (games?.items || []));
   const [loadingAll, setLoadingAll] = useState(false);
   const [loadError, setLoadError] = useState(null);
 
   useEffect(() => {
-    if (Array.isArray(games)) return setList(games);
-    if (games && Array.isArray(games.items)) return setList(games.items);
-    setList([]);
+    setList(Array.isArray(games) ? games : (games?.items || []));
   }, [games]);
 
   useEffect(() => {
-    const isPaginated = games && Array.isArray(games.items) && (typeof games.total !== "undefined" || typeof games.totalCount !== "undefined");
+    const isPaginated = !!(games && Array.isArray(games.items) && (typeof games.total !== "undefined" || typeof games.totalCount !== "undefined"));
     const total = isPaginated ? (games.total ?? games.totalCount) : null;
+    if (!isPaginated || !total || !Array.isArray(games.items) || games.items.length >= total || typeof loadAll !== "function") return;
 
-    if (isPaginated && total && Array.isArray(games.items) && games.items.length < total && typeof loadAll === "function") {
-      let mounted = true;
-      (async () => {
-        try {
-          setLoadingAll(true);
-          setLoadError(null);
-          const res = await loadAll();
-          if (!mounted) return;
-          if (Array.isArray(res)) setList(res);
-          else if (res && Array.isArray(res.items)) setList(res.items);
-        } catch (err) {
-          console.error("GameList: falha ao carregar todos os jogos:", err);
-          if (mounted) setLoadError(err.message || String(err));
-        } finally {
-          if (mounted) setLoadingAll(false);
-        }
-      })();
-      return () => { mounted = false; };
-    }
+    let mounted = true;
+    (async () => {
+      try {
+        setLoadingAll(true);
+        setLoadError(null);
+        const res = await loadAll();
+        if (!mounted) return;
+        setList(Array.isArray(res) ? res : (res?.items || []));
+      } catch (err) {
+        console.error("GameList loadAll error:", err);
+        if (mounted) setLoadError(err.message || String(err));
+      } finally {
+        if (mounted) setLoadingAll(false);
+      }
+    })();
+    return () => (mounted = false);
   }, [games, loadAll]);
 
+  const computeRating = (g) => {
+    try {
+      const r =
+        (g?.user_review?.rating != null ? g.user_review.rating :
+         (g.rating != null ? g.rating :
+           (g.avg_rating != null ? g.avg_rating :
+             (g?.giantbomb?.rating != null ? g.giantbomb.rating : 0))));
+      const n = Number(r || 0);
+      return Number.isFinite(n) ? Math.round(n) : 0;
+    } catch {
+      return 0;
+    }
+  };
+
   const total = list.length;
-  const sum = list.reduce((s, g) => s + (Number(g && g.rating) || 0), 0);
+  const sum = list.reduce((s, g) => s + (Number(computeRating(g)) || 0), 0);
   const avg = total ? sum / total : 0;
   const avgDisplay = total ? (Math.round(avg * 10) / 10).toFixed(1) : "—";
 
@@ -57,7 +63,7 @@ export default function GameList({ games, onView, onEdit, loadAll }) {
               <span className="text-gray-500">Carregando todos os jogos...</span>
             ) : (
               <div className="flex items-center gap-2">
-                {loadError && <span className="text-xs text-red-500">Erro ao carregar: {loadError}</span>}
+                {loadError && <span className="text-xs text-red-500">Erro: {loadError}</span>}
                 {typeof loadAll === "function" ? (
                   <button
                     onClick={async () => {
@@ -65,8 +71,7 @@ export default function GameList({ games, onView, onEdit, loadAll }) {
                         setLoadingAll(true);
                         setLoadError(null);
                         const res = await loadAll();
-                        if (Array.isArray(res)) setList(res);
-                        else if (res && Array.isArray(res.items)) setList(res.items);
+                        setList(Array.isArray(res) ? res : (res?.items || []));
                       } catch (err) {
                         console.error(err);
                         setLoadError(err.message || String(err));
@@ -79,7 +84,7 @@ export default function GameList({ games, onView, onEdit, loadAll }) {
                     Carregar todos
                   </button>
                 ) : (
-                  <span className="text-xs text-gray-500">Nem todos os jogos foram carregados. Passe a prop <code>loadAll</code> para carregar todos.</span>
+                  <span className="text-xs text-gray-500">Passe a prop <code>loadAll</code> para carregar tudo.</span>
                 )}
               </div>
             )}
@@ -91,57 +96,46 @@ export default function GameList({ games, onView, onEdit, loadAll }) {
         <div className="mt-4 text-sm text-gray-500">Nenhum jogo no catálogo.</div>
       ) : (
         <ul className="mt-4 space-y-3">
-          {list.map((g) => (
-            <li
-              key={g.id ?? g._id ?? g.name}
-              onClick={() => onView && onView(g)}
-              className="flex items-start justify-between gap-4 p-3 border rounded hover:shadow-sm dark:border-gray-700 cursor-pointer"
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onView && onView(g); }}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-sm font-medium text-gray-700 dark:text-gray-200">
-                    {(g.name || "-").slice(0, 2).toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-baseline gap-2">
-                      <a
-                        href={`/games/${g.id ?? g._id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="font-medium truncate hover:underline"
-                        title={g.name}
-                      >
-                        {g.name}
-                      </a>
-                      <div className="text-xs text-gray-500">· {g.status || "—"}</div>
+          {list.map((g) => {
+            const ratingValue = computeRating(g);
+            return (
+              <li
+                key={g.id ?? g._id ?? g.name}
+                onClick={() => onView && onView(g)}
+                className="flex items-start justify-between gap-4 p-3 border rounded hover:shadow-sm dark:border-gray-700 cursor-pointer"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onView && onView(g); }}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-sm font-medium text-gray-700 dark:text-gray-200">
+                      {(g.name || "-").slice(0, 2).toUpperCase()}
                     </div>
-                    <div className="text-sm text-gray-500 truncate">{g.description || "—"}</div>
+                    <div className="min-w-0">
+                      <div className="flex items-baseline gap-2">
+                        <a
+                          href={`/games/${g.id ?? g._id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="font-medium truncate hover:underline"
+                          title={g.name}
+                        >
+                          {g.name}
+                        </a>
+                        <div className="text-xs text-gray-500">· {g.status || "—"}</div>
+                      </div>
+                      <div className="text-sm text-gray-500 truncate">{g.description || "—"}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex flex-col items-end gap-2">
-                <RatingStars value={Number(g.rating) || 0} />
-                <div className="flex gap-2">
-                  {/* <button
-                    onClick={(e) => { e.stopPropagation(); onView && onView(g); }}
-                    className="text-sm px-3 py-1 border rounded"
-                    aria-label={`Ver ${g.name}`}
-                  >
-                    Ver
-                  </button> */}
-                  {/* <button
-                    onClick={(e) => { e.stopPropagation(); onEdit && onEdit(g); }}
-                    className="text-sm px-2 py-1 bg-indigo-600 text-white rounded"
-                  >
-                    Editar
-                  </button> */}
+                <div className="flex flex-col items-end gap-2">
+                  <RatingStars value={ratingValue} />
+                  <div className="text-xs text-gray-500">{ratingValue > 0 ? `${ratingValue}/10` : "—"}</div>
                 </div>
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
