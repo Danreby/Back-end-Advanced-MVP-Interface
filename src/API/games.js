@@ -7,7 +7,7 @@ export async function listMyGames({ skip = 0, limit = 50 } = {}) {
 
 export async function listAllGamesGrouped() {
   const res = await api.get("/games/all");
-  return res.data; 
+  return res.data;
 }
 
 export async function getGame(gameId) {
@@ -43,12 +43,20 @@ export async function loadAllMyGames({ pageSize = 200 } = {}) {
   return all;
 }
 
+export async function updateGameStatus(gameId, status) {
+const res = await api.patch(`/games/${gameId}/status`, { status });
+return res.data;
+}
+
+export async function createGameWithStatus(payload) {
+const res = await api.post("/games", payload);
+return res.data;
+}
+
 export default {
   listMyGames,
   listAllGamesGrouped,
   getGame,
   createGame,
   updateGame,
-  deleteGame,
-  loadAllMyGames,
 };

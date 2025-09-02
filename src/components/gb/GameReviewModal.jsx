@@ -5,12 +5,13 @@ import GameCover from "./GameCover";
 import RatingStars from "../ui/RatingStars";
 import { toast } from "react-toastify";
 import { createReview, updateReview } from "../../API/reviews";
+import * as gamesApi from "../../API/games";
 
 function getApiBase() {
   return import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 }
 
-export default function GameReviewModal({ isOpen, onClose, game, onImport, onSavedReview = null }) {
+export default function GameReviewModal({ isOpen, onClose, game, onImport, onSavedReview = null, onStatusChange = null }) {
   const [loadingReview, setLoadingReview] = useState(false);
   const [review, setReview] = useState(null);
   const [reviewError, setReviewError] = useState(null);
@@ -30,6 +31,25 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport, onSav
 
   const contentRef = useRef(null);
 
+  const STATUS_OPTIONS = [
+    { key: "wishlist", label: "Wishlist" },
+    { key: "on_going", label: "On going" },
+    { key: "stand_by", label: "Stand by" },
+    { key: "dropped", label: "Dropped" },
+    { key: "completed", label: "Completed" },
+  ];
+
+  const STATUS_STYLES = {
+    wishlist: { active: "bg-gray-400 text-black", inactive: "bg-transparent text-gray-700 dark:text-white border-gray-300 dark:border-gray-600" },
+    on_going: { active: "bg-blue-600 text-white", inactive: "bg-transparent text-gray-700 dark:text-white border-gray-300 dark:border-gray-600" },
+    stand_by: { active: "bg-yellow-400 text-black", inactive: "bg-transparent text-gray-700 dark:text-white border-gray-300 dark:border-gray-600" },
+    dropped: { active: "bg-red-600 text-white", inactive: "bg-transparent text-gray-700 dark:text-white border-gray-300 dark:border-gray-600" },
+    completed: { active: "bg-green-600 text-white", inactive: "bg-transparent text-gray-700 dark:text-white border-gray-300 dark:border-gray-600" },
+  };
+
+  const [status, setStatus] = useState(null);
+  const [updatingStatusTo, setUpdatingStatusTo] = useState(null);
+
   useEffect(() => {
     if (!isOpen) {
       setLoadingReview(false);
@@ -44,6 +64,7 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport, onSav
       setImportError(null);
       setAutoSaving(false);
       setAutoSaveSuccess(false);
+      setStatus(null);
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
         autoSaveTimeoutRef.current = null;
@@ -54,6 +75,13 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport, onSav
   useEffect(() => {
     if (isOpen && contentRef.current) contentRef.current.scrollTop = 0;
   }, [game, isOpen]);
+
+  useEffect(() => {
+    if (game) {
+      const initial = game.status || game.user_status || game.user_game?.status || game.play_status || null;
+      setStatus(initial);
+    }
+  }, [game]);
 
   const gb = game && game.giantbomb ? game.giantbomb : game || {};
   const title = gb.name || game?.name || "Detalhes do jogo";
@@ -77,9 +105,14 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport, onSav
   useEffect(() => {
     if (!isOpen || !game) return;
     let mounted = true;
+
     setLoadingReview(true);
     setReview(null);
     setReviewError(null);
+    setEditing(false);
+    setDraftRating(0);
+    setDraftText("");
+    setDraftIsPublic(true);
 
     async function fetchReview() {
       const base = getApiBase();
@@ -94,14 +127,19 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport, onSav
 
       let got = null;
       let lastErr = null;
+
       for (let url of attempts) {
         try {
+          console.debug("fetchReview attempt", url);
           const res = await fetch(url, { headers });
           if (!res.ok) {
             lastErr = `status ${res.status} (${url})`;
             continue;
           }
+
           const data = await res.json();
+          console.debug("fetchReview data", { url, data });
+
           if (!data) {
             lastErr = `empty response (${url})`;
             continue;
@@ -112,36 +150,55 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport, onSav
               lastErr = `no reviews in array (${url})`;
               continue;
             }
+
             let found = null;
-            if (game.id) found = data.find(r => String(r.game_id) === String(game.id));
+            if (game?.id) found = data.find(r => String(r.game_id) === String(game.id));
             if (!found && ext) found = data.find(r => String(r.external_guid) === String(ext) || String(r.guid) === String(ext));
-            found = found || data[0];
-            got = found;
-            break;
+
+            if (found) {
+              got = found;
+              break;
+            } else {
+              lastErr = `no matching review in array (${url})`;
+              continue;
+            }
           } else if (data.results && Array.isArray(data.results) && data.results.length) {
-            const candidate = data.results.find(r => String(r.game_id) === String(game.id)) || data.results[0];
-            got = candidate;
-            break;
+            const candidate = data.results.find(r => String(r.game_id) === String(game.id)) || null;
+            if (candidate) {
+              got = candidate;
+              break;
+            } else {
+              lastErr = `no matching review in results (${url})`;
+              continue;
+            }
           } else if (data.items && Array.isArray(data.items) && data.items.length) {
-            const candidate = data.items.find(r => String(r.game_id) === String(game.id)) || data.items[0];
-            got = candidate;
-            break;
+            const candidate = data.items.find(r => String(r.game_id) === String(game.id)) || null;
+            if (candidate) {
+              got = candidate;
+              break;
+            } else {
+              lastErr = `no matching review in items (${url})`;
+              continue;
+            }
           } else {
             got = data;
             break;
           }
         } catch (err) {
           lastErr = err.message || String(err);
+          console.error("fetchReview error", err);
         }
       }
 
       if (!mounted) return;
+
       if (!got) {
+        const isNotFound = lastErr && /no reviews|no matching|empty response|not found/i.test(lastErr);
+
         setReview(null);
-        setReviewError(lastErr || "Nenhuma review encontrada.");
+        setReviewError(isNotFound ? null : (lastErr ? `Erro ao carregar sua review: ${lastErr}` : "Nenhuma review encontrada."));
         setDraftRating(0);
         setDraftText("");
-        setDraftIsPublic(true);
       } else {
         const normalized = {
           ...got,
@@ -154,6 +211,7 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport, onSav
         setDraftText(normalized.review_text || "");
         setDraftIsPublic(normalized.is_public ?? true);
       }
+
       setLoadingReview(false);
     }
 
@@ -192,6 +250,20 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport, onSav
         };
 
         setReview(normalized);
+        try {
+          if (typeof onStatusChange === "function") {
+            onStatusChange({
+              ...game,
+              id: game?.id,
+              external_guid: game?.external_guid ?? game?.externalGuid ?? null,
+              rating: normalized.rating,
+              review: normalized,
+            });
+          }
+        } catch (cbErr) {
+          console.warn("onStatusChange threw:", cbErr);
+        }
+
         setDraftText(normalized.review_text || "");
         setDraftRating(Math.round(Number(normalized.rating ?? 0)));
         setDraftIsPublic(normalized.is_public ?? true);
@@ -243,7 +315,23 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport, onSav
         setReview(saved);
         setDraftText((saved && (saved.review_text ?? saved.text ?? saved.body)) || draftText || "");
         setAutoSaveSuccess(true);
+
+        try {
+          if (typeof onStatusChange === "function") {
+            onStatusChange({
+              ...game,
+              id: game?.id,
+              external_guid: game?.external_guid ?? game?.externalGuid ?? null,
+              rating: saved.rating,
+              review: saved,
+            });
+          }
+        } catch (cbErr) {
+          console.warn("onStatusChange threw:", cbErr);
+        }
+
         setTimeout(() => setAutoSaveSuccess(false), 1500);
+
       } catch (err) {
         console.error("Erro ao autosave:", err);
         setReviewError(err.message || String(err));
@@ -283,10 +371,55 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport, onSav
     }
   }
 
+  async function handleChangeStatus(newStatus) {
+    if (!game) return;
+    if (String(status) === String(newStatus)) return; 
+
+    const previous = status;
+    setStatus(newStatus);
+    setUpdatingStatusTo(newStatus);
+
+    try {
+      let saved = null;
+      const ext = game.external_guid || game.externalGuid || game.external_id || gb.guid || gb.id || null;
+
+      if (game.id) {
+        saved = await gamesApi.updateGameStatus(game.id, newStatus);
+      } else if (ext) {
+        saved = await gamesApi.createGameWithStatus({ external_guid: ext, status: newStatus });
+      } else {
+        throw new Error("Não há game.id nem external_guid para atualizar status");
+      }
+
+      const savedStatus = saved?.status ?? (saved?.data?.status) ?? newStatus;
+      setStatus(savedStatus);
+      try {
+        if (typeof onStatusChange === "function") {
+          if (saved && (saved.id || saved.game_id || saved.data)) {
+            onStatusChange(saved);
+          } else {
+            onStatusChange({ id: game?.id ?? null, external_guid: game?.external_guid ?? null, status: savedStatus });
+          }
+        }
+      } catch (e) {
+        console.warn("onStatusChange callback threw:", e);
+      }
+      toast.success(`Status atualizado: ${savedStatus}`);
+
+    } catch (err) {
+      console.error("Erro ao atualizar status:", err);
+      setStatus(previous);
+      toast.error("Não foi possível atualizar o status");
+    } finally {
+      setUpdatingStatusTo(null);
+    }
+  }
+
   const entry = {
     initial: { opacity: 0, y: 8, scale: 0.996 },
     animate: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 240, damping: 20 } },
   };
+
   const displayRating = (review && typeof review.rating !== "undefined") ? Math.round(Number(review.rating)) : (gb && typeof gb.rating !== "undefined" ? Math.round(Number(gb.rating)) : 0);
 
   const reviewRating = review ? Math.round(Number(review.rating || 0)) : null;
@@ -299,7 +432,7 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport, onSav
       );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg" ariaLabelledBy="game-title">
+    <Modal key={game?.id ?? gb.guid ?? 'game-modal'} isOpen={isOpen} onClose={onClose} size="lg" ariaLabelledBy="game-title">
       <motion.div {...entry} className="p-0">
         <div ref={contentRef} className="p-4 sm:p-6 md:p-8 max-h-[80vh] overflow-auto pr-3" style={{ WebkitOverflowScrolling: "touch" }}>
           {!game ? (
@@ -327,6 +460,30 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport, onSav
                     <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"/>
                   </svg>
                 </button>
+              </div>
+
+              <div className="mt-3 flex gap-2 items-center flex-wrap">
+                {STATUS_OPTIONS.map(s => {
+                  const isActive = String(status) === String(s.key);
+                  const style = STATUS_STYLES[s.key] || STATUS_STYLES.wishlist;
+                  const base = "text-xs px-3 py-1 rounded border flex items-center gap-2 transition-colors";
+                  const activeExtras = "ring-2 ring-offset-1 ring-opacity-60";
+                  const disabled = updatingStatusTo && String(updatingStatusTo) !== String(s.key);
+                  const cls = `${base} ${isActive ? `${style.active} ${activeExtras}` : `${style.inactive}`} ${disabled ? "opacity-60 cursor-not-allowed" : "hover:opacity-90"}`;
+
+                  return (
+                    <button
+                      key={s.key}
+                      onClick={() => handleChangeStatus(s.key)}
+                      disabled={disabled}
+                      aria-pressed={isActive}
+                      title={`Alterar para ${s.label}`}
+                      className={cls}
+                    >
+                      { (updatingStatusTo && String(updatingStatusTo) === String(s.key)) ? `${s.label}...` : s.label }
+                    </button>
+                  );
+                })}
               </div>
 
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-6 items-start">
@@ -412,16 +569,9 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport, onSav
                         </div>
                       ) : (
                         <div className="space-y-2">
+                          <textarea rows={4} value={draftText} onChange={(e) => setDraftText(e.target.value)} className="w-full p-2 dark:text-white dark:bg-transparent border rounded text-sm" placeholder="Escreva sua review..." />
+                          {reviewError && <div className="text-sm text-red-500">{reviewError}</div>}
                           <div className="flex items-center gap-3">
-                            <label className="text-xs text-gray-500">Nota</label>
-                            <RatingStars
-                              value={draftRating}
-                              onChange={(v) => setDraftRating(Math.round(Number(v || 0)))}
-                              readOnly={false}
-                              max={10}
-                              size={20}
-                              showTooltip={true}
-                            />
                             <div className="ml-auto flex gap-2">
                               <button onClick={() => setEditing(false)} disabled={saving} className="text-xs px-2 py-1 border rounded dark:text-white">Cancelar</button>
                               <button onClick={handleSaveReview} disabled={saving} className="text-xs px-3 py-1 bg-indigo-600 text-white rounded">
@@ -429,9 +579,6 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport, onSav
                               </button>
                             </div>
                           </div>
-
-                          <textarea rows={4} value={draftText} onChange={(e) => setDraftText(e.target.value)} className="w-full p-2 dark:text-white dark:bg-transparent border rounded text-sm" placeholder="Escreva sua review..." />
-                          {reviewError && <div className="text-sm text-red-500">{reviewError}</div>}
                         </div>
                       )}
                     </div>

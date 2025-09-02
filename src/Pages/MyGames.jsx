@@ -130,6 +130,39 @@ export default function MyGames() {
     };
   }, []);
 
+  const handleGameUpdated = useCallback(
+    (updated) => {
+      if (!updated) return;
+      const id = updated.id ?? updated.game_id ?? null;
+      const ext = updated.external_guid ?? updated.externalGuid ?? null;
+
+      setGames((prev) => {
+        if (!Array.isArray(prev)) return prev;
+
+        if (id !== null) {
+          const exists = prev.some((g) => Number(g.id) === Number(id));
+          if (exists) {
+            return prev.map((g) => (Number(g.id) === Number(id) ? { ...g, ...updated } : g));
+          } else {
+            return [{ ...updated }, ...prev];
+          }
+        }
+
+        if (ext) {
+          const exists = prev.some((g) => (g.external_guid || g.externalGuid) === ext);
+          if (exists) {
+            return prev.map((g) => ((g.external_guid || g.externalGuid) === ext ? { ...g, ...updated } : g));
+          } else {
+            return [{ ...updated }, ...prev];
+          }
+        }
+
+        return prev;
+      });
+    },
+    [setGames]
+  );
+
   useEffect(() => {
     if (!user) return;
     let mounted = true;
@@ -438,7 +471,7 @@ export default function MyGames() {
         </div>
       </main>
 
-      <GameReviewModal isOpen={!!selectedGame} onClose={handleCloseModal} game={selectedGame} onImport={(item) => handleImport(item)} />
+      <GameReviewModal isOpen={!!selectedGame} onClose={handleCloseModal} game={selectedGame} onImport={(item) => handleImport(item)} onStatusChange={handleGameUpdated} />
 
       <MyGamesFilter
         open={drawerOpen}
