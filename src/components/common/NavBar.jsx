@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import api from "../../API/axios";
 
 export function Navbar({ user, onLogout, onNavigate }) {
   const [navOpen, setNavOpen] = useState(false);
@@ -56,6 +57,21 @@ export function Navbar({ user, onLogout, onNavigate }) {
     );
   }
 
+  function resolveAvatarUrl(avatar_url) {
+    if (!avatar_url) return null;
+    if (avatar_url.startsWith("http://") || avatar_url.startsWith("https://")) return avatar_url;
+
+    const baseFromApi = api && api.defaults && api.defaults.baseURL ? String(api.defaults.baseURL).replace(/\/+$/, "") : null;
+    const fallbackOrigin = typeof window !== "undefined" ? String(window.location.origin).replace(/\/+$/, "") : "";
+
+    const base = (baseFromApi && (baseFromApi.startsWith("http://") || baseFromApi.startsWith("https://"))) ? baseFromApi : fallbackOrigin;
+
+    if (!base) return avatar_url; 
+
+    if (avatar_url.startsWith("/")) return `${base}${avatar_url}`;
+    return `${base}/${avatar_url.replace(/^\/+/, "")}`;
+  }
+
   return (
     <header className="sticky top-0 z-50 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b dark:border-gray-800 shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -105,7 +121,12 @@ export function Navbar({ user, onLogout, onNavigate }) {
                 aria-label="Abrir menu do usuário"
               >
                 <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs font-medium text-gray-700 dark:text-gray-200">
-                  {user && user.email ? user.email.charAt(0).toUpperCase() : "U"}
+                  {/* {user && user.email ? user.email.charAt(0).toUpperCase() : "U"} */}
+                  <img
+                    src={user?.avatar_url ? resolveAvatarUrl(user.avatar_url) : "/default-avatar.png"}
+                    alt={user && user.email ? user.email.charAt(0).toUpperCase() : "U"}
+                    className="h-8 w-8 rounded-full object-cover outline-dotted outline-1 outline-gray-400 dark:outline-gray-600"
+                  />
                 </div>
                 <svg className={`w-4 h-4 transition-transform ${userOpen ? "rotate-180" : ""} dark:text-white`} viewBox="0 0 20 20" fill="currentColor" aria-hidden>
                   <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.355a.75.75 0 011.14.98l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
