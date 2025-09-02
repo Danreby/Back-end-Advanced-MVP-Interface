@@ -202,6 +202,7 @@ export default function MyGames() {
         <div className="flex gap-2 items-center">
           <motion.h1 className="text-2xl font-bold">Games</motion.h1>
           <div className="ml-auto text-sm text-gray-500 dark:text-gray-400">Mostrando todos os jogos do seu perfil</div>
+
         </div>
 
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">

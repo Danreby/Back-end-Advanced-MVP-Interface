@@ -3,7 +3,6 @@
   <head>
     <meta charset="UTF-8" />
 
-    <!-- script inline aqui: roda antes do render e evita flash de tema -->
     <script>
       (function() {
         try {
@@ -16,16 +15,15 @@
             document.documentElement.classList.remove("dark");
             return;
           }
-          // sem preferência salva -> seguir preferência do sistema
           const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
           if (prefersDark) document.documentElement.classList.add("dark");
         } catch (e) {
-          // ignore
+          //
         }
       })();
     </script>
 
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="/catgame.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CatGame</title>
   </head>
