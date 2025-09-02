@@ -33,24 +33,27 @@ export async function deleteGame(gameId) {
 export async function loadAllMyGames({ pageSize = 200 } = {}) {
   let all = [];
   let skip = 0;
+
   while (true) {
     const { total, items } = await listMyGames({ skip, limit: pageSize });
     all = all.concat(items || []);
     if (all.length >= (total || 0)) break;
     if (!items || items.length === 0) break;
-    skip += pageSize;
+    skip += items.length;
   }
+
   return all;
 }
 
+// Atualizar apenas o status de um game
 export async function updateGameStatus(gameId, status) {
-const res = await api.patch(`/games/${gameId}/status`, { status });
-return res.data;
+  const res = await api.patch(`/games/${gameId}/status`, { status });
+  return res.data;
 }
 
 export async function createGameWithStatus(payload) {
-const res = await api.post("/games", payload);
-return res.data;
+  const res = await api.post("/games", payload);
+  return res.data;
 }
 
 export default {
@@ -59,4 +62,8 @@ export default {
   getGame,
   createGame,
   updateGame,
+  deleteGame,
+  loadAllMyGames,
+  updateGameStatus,
+  createGameWithStatus,
 };
