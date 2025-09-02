@@ -10,9 +10,21 @@ export async function listAllGamesGrouped() {
   return res.data;
 }
 
-export async function getGame(gameId) {
+export async function getGame(gameId, { include_my_review = false } = {}) {
+  if (include_my_review) {
+    const res = await api.get(`/games/${gameId}/me`);
+    return res.data;
+  }
   const res = await api.get(`/games/${gameId}`);
   return res.data;
+}
+
+export async function getGameWithMyReview(gameId) {
+  try {
+    return await getGame(gameId, { include_my_review: true });
+  } catch (err) {
+    return getGame(gameId);
+  }
 }
 
 export async function createGame(payload) {
@@ -33,21 +45,18 @@ export async function deleteGame(gameId) {
 export async function loadAllMyGames({ pageSize = 200 } = {}) {
   let all = [];
   let skip = 0;
-
   while (true) {
     const { total, items } = await listMyGames({ skip, limit: pageSize });
     all = all.concat(items || []);
     if (all.length >= (total || 0)) break;
     if (!items || items.length === 0) break;
-    skip += items.length;
+    skip += pageSize;
   }
-
   return all;
 }
 
-// Atualizar apenas o status de um game
 export async function updateGameStatus(gameId, status) {
-  const res = await api.patch(`/games/${gameId}/status`, { status });
+  const res = await api.post("/games/upsert-status", { id: gameId, status });
   return res.data;
 }
 
@@ -56,14 +65,26 @@ export async function createGameWithStatus(payload) {
   return res.data;
 }
 
+export async function upsertGameStatus({ id = null, external_guid = null, status = null } = {}) {
+  if (!status) throw new Error("status required");
+  const payload = {};
+  if (id) payload.id = id;
+  if (external_guid) payload.external_guid = external_guid;
+  payload.status = status;
+  const res = await api.post("/games/upsert-status", payload);
+  return res.data;
+}
+
 export default {
   listMyGames,
   listAllGamesGrouped,
   getGame,
+  getGameWithMyReview,
   createGame,
   updateGame,
   deleteGame,
   loadAllMyGames,
   updateGameStatus,
   createGameWithStatus,
+  upsertGameStatus,
 };
