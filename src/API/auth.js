@@ -1,3 +1,4 @@
+// src/API/auth.js
 import api from "./axios";
 
 // Registrar usuário
@@ -19,14 +20,23 @@ export const login = async (data) => {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
   });
 
-  localStorage.setItem("token", response.data.access_token);
+  // salva token somente se o login foi bem-sucedido
+  if (response?.data?.access_token) {
+    localStorage.setItem("token", response.data.access_token);
+  }
 
   return response.data;
 };
 
-// Confirmar email
+// Confirmar email (opcional — backend faz redirect quando o usuário clica no link)
 export const confirmEmail = async (token) => {
-  const response = await api.get(`/confirm-email?token=${token}`);
+  const response = await api.get(`/auth/confirm?token=${encodeURIComponent(token)}`);
+  return response.data;
+};
+
+// Reenviar e-mail de confirmação (backend: POST /auth/resend-confirmation)
+export const resendConfirmation = async (email) => {
+  const response = await api.post("/auth/resend-confirmation", { email });
   return response.data;
 };
 

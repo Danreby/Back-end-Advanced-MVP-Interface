@@ -1,5 +1,6 @@
+// src/pages/auth/Register.jsx (ou onde estiver o seu componente)
 import { useState } from "react";
-import { register, login } from "../../API/auth";
+import { register } from "../../API/auth";
 import { toast } from "react-toastify";
 
 export default function Register({ onSwitch }) {
@@ -13,19 +14,26 @@ export default function Register({ onSwitch }) {
     setLoading(true);
 
     try {
+      // Faz o registro — backend cria usuário INATIVO e envia e-mail de confirmação
       await register({ name, email, password });
 
-      toast.success("Conta criada com sucesso! Fazendo login...");
+      // Não faz login automático (não será possível enquanto o usuário estiver inativo)
+      toast.success("Conta criada com sucesso! Verifique seu e-mail para confirmar a conta.");
 
-      const data = await login({ email, password });
-      localStorage.setItem("token", data.access_token);
-
-      window.location.href = "/";
+      // redireciona para uma tela de "verifique seu e-mail" ou para login
+      // aqui eu redireciono para /login (você pode ter uma rota /auth/check-email)
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 1800);
     } catch (err) {
       console.error(err);
 
-      if (err.response?.status === 400 && err.response?.data?.detail?.includes("email")) {
+      // Quando o backend manda 400 com detalhe sobre o e-mail já cadastrado:
+      if (err.response?.status === 400 && typeof err.response?.data?.detail === "string" && err.response.data.detail.toLowerCase().includes("email")) {
         toast.error("Email já está em uso.");
+      } else if (err.response?.status === 400 && typeof err.response?.data?.detail === "string" && err.response.data.detail.toLowerCase().includes("active")) {
+        // caso o backend retorne algo como "Account is not active..."
+        toast.info("Conta registrada mas ainda não ativa. Verifique seu e-mail.");
       } else if (err.response?.status === 422) {
         toast.error("Dados inválidos. Verifique os campos.");
       } else {
@@ -40,7 +48,7 @@ export default function Register({ onSwitch }) {
     if (typeof onSwitch === "function") {
       onSwitch();
     } else {
-      window.location.href = "/Login";
+      window.location.href = "/login";
     }
   };
 

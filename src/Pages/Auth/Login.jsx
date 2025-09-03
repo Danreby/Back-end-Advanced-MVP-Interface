@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { login } from "../../API/auth";
+import { login, resendConfirmation } from "../../API/auth";
 import MailIcon from "../../components/icons/MailIcon";
 import LockIcon from "../../components/icons/LockIcon";
 import CorpIcon from "../../components/icons/CorpIcon";
+import { toast } from "react-toastify";
 
 export default function Login({ onSwitch }) {
   const [email, setEmail] = useState("");
@@ -11,16 +12,58 @@ export default function Login({ onSwitch }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // novo estado: quando backend responde que conta inativa
+  const [showConfirmNotice, setShowConfirmNotice] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setShowConfirmNotice(false);
     setLoading(true);
+
     try {
       await login({ email, password });
       window.location.href = "/";
     } catch (err) {
-      setError("Credenciais inválidas");
+      // caso o backend retorne 400 com detalhe sobre inatividade
+      const status = err?.response?.status;
+      const detail = err?.response?.data?.detail?.toString?.() ?? "";
+
+      if (status === 400 && detail.toLowerCase().includes("active")) {
+        // backend já deve ter enviado o e-mail (conforme rota /auth/login implementada)
+        toast.info("Conta ainda não ativada. Enviamos um e-mail de confirmação para você.");
+        setShowConfirmNotice(true);
+        setError("");
+      } else if (status === 401) {
+        setError("Credenciais inválidas");
+      } else {
+        setError("Erro ao tentar entrar. Tente novamente.");
+      }
+
       setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!email) {
+      toast.error("Informe seu email para reenviar o link de confirmação.");
+      return;
+    }
+    setResendLoading(true);
+    try {
+      await resendConfirmation(email);
+      toast.success("E-mail de confirmação reenviado. Verifique sua caixa de entrada.");
+      setShowConfirmNotice(true);
+    } catch (err) {
+      console.error("resend err", err);
+      if (err?.response?.status === 404) {
+        toast.error("Usuário não encontrado.");
+      } else {
+        toast.error("Erro ao reenviar e-mail. Tente novamente mais tarde.");
+      }
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -40,7 +83,6 @@ export default function Login({ onSwitch }) {
   };
 
   const handleSwitch = () => {
-    console.log("[Login] handleSwitch - onSwitch type:", typeof onSwitch, onSwitch);
     if (typeof onSwitch === "function") {
       onSwitch();
     } else {
@@ -113,7 +155,6 @@ export default function Login({ onSwitch }) {
                   <path fill="url(#g)" d="m7.788 2.34-.799 1.278A.25.25 0 0 0 7.201 4h1.598a.25.25 0 0 0 .212-.382l-.799-1.279a.25.25 0 0 0-.424 0Zm0 11.32-.799-1.277A.25.25 0 0 1 7.201 12h1.598a.25.25 0 0 1 .212.383l-.799 1.278a.25.25 0 0 1-.424 0ZM3.617 9.01 2.34 8.213a.25.25 0 0 1 0-.424l1.278-.799A.25.25 0 0 1 4 7.201V8.8a.25.25 0 0 1-.383.212Zm10.043-.798-1.277.799A.25.25 0 0 1 12 8.799V7.2a.25.25 0 0 1 .383-.212l1.278.799a.25.25 0 0 1 0 .424Z"/>
                   <path fill="url(#g)" d="M6.5 0A1.5 1.5 0 0 0 5 1.5v3a.5.5 0 0 1-.5.5h-3A1.5 1.5 0 0 0 0 6.5v3A1.5 1.5 0 0 0 1.5 11h3a.5.5 0 0 1 .5.5v3A1.5 1.5 0 0 0 6.5 16h3a1.5 1.5 0 0 0 1.5-1.5v-3a.5.5 0 0 1 .5-.5h3A1.5 1.5 0 0 0 16 9.5v-3A1.5 1.5 0 0 0 14.5 5h-3a.5.5 0 0 1-.5-.5v-3A1.5 1.5 0 0 0 9.5 0zM6 1.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5v3A1.5 1.5 0 0 0 11.5 6h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a1.5 1.5 0 0 0-1.5 1.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3A1.5 1.5 0 0 0 4.5 10h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5h3A1.5 1.5 0 0 0 6 4.5z"/>
                   <defs>
-
                     <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
                       <stop offset="0" stopColor="#7C3AED" />
                       <stop offset="1" stopColor="#06B6D4" />
@@ -147,6 +188,33 @@ export default function Login({ onSwitch }) {
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              {/* Notice de confirmação (aparece quando conta inativa) */}
+              {showConfirmNotice && (
+                <div className="mb-2 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 text-yellow-900 dark:text-yellow-100 px-3 py-2 rounded-lg text-sm">
+                  Sua conta ainda não foi ativada. Verifique seu e-mail (pasta spam) ou clique em reenviar abaixo.
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleResend}
+                      disabled={resendLoading}
+                      className="px-3 py-1 rounded-md bg-emerald-500 text-white text-sm hover:bg-emerald-600 disabled:opacity-60"
+                    >
+                      {resendLoading ? "Enviando..." : "Reenviar e-mail"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Leva o usuário para uma tela de suporte/login
+                        window.location.href = "/register";
+                      }}
+                      className="px-3 py-1 rounded-md bg-white border border-gray-200 text-gray-800 text-sm"
+                    >
+                      Voltar
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <label className="block">
                 <span className="sr-only">Email</span>
@@ -234,20 +302,8 @@ export default function Login({ onSwitch }) {
                     <span>Entrar</span>
                   )}
                 </motion.button>
-
               </div>
-
-              {/* <div className="mt-4 flex items-center justify-center gap-3">
-                <button type="button" className="px-3 py-2 rounded-lg bg-white/6 backdrop-blur-sm hover:scale-105 transition">
-                  <CorpIcon type={1} className="dark:text-white"/>
-                </button>
-                <button type="button" className="px-3 py-2 rounded-lg bg-white/6 backdrop-blur-sm hover:scale-105 transition">
-                  <CorpIcon type={2} className="dark:text-white"/>
-                </button>
-              </div> */}
             </form>
-
-            {/* <p className="mt-6 text-center text-xs text-gray-600 dark:text-gray-400">Ao continuar, você concorda com nossos termos e políticas.</p> */}
           </motion.div>
 
         <div className="mt-4 text-center text-white/60 text-sm">
