@@ -1,18 +1,28 @@
-// src/pages/auth/Register.jsx (ou onde estiver o seu componente)
+// src/pages/auth/Register.jsx
 import { useState } from "react";
 import { register } from "../../API/auth";
 import { toast } from "react-toastify";
+import EyeIcon from "../../components/icons/EyeIcon";
 
 export default function Register({ onSwitch }) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [confirmationLink, setConfirmationLink] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
+    if (password !== confirmPassword) {
+      toast.error("As senhas não coincidem.");
+      setLoading(false);
+      return;
+    }
 
     try {
       const res = await register({ name, email, password });
@@ -99,17 +109,48 @@ export default function Register({ onSwitch }) {
                 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-400"
                 required
               />
-              <input
-                type="password"
-                placeholder="Senha"
-                maxLength={255}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-3 rounded-xl border border-gray-300
-                dark:bg-gray-800 dark:border-gray-700
-                focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-400"
-                required
-              />
+              
+              {/* Campo Senha */}
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Senha"
+                  maxLength={255}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full p-3 rounded-xl border border-gray-300
+                  dark:bg-gray-800 dark:border-gray-700
+                  focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-400"
+                  required
+                />
+                <span
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 cursor-pointer"
+                >
+                  <EyeIcon type={showPassword ? 2 : 1} className="h-5 w-5 text-gray-400" />
+                </span>
+              </div>
+
+              {/* Campo Confirmar Senha */}
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirmar Senha"
+                  maxLength={255}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full p-3 rounded-xl border border-gray-300
+                  dark:bg-gray-800 dark:border-gray-700
+                  focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-400"
+                  required
+                />
+                <span
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 cursor-pointer"
+                >
+                  <EyeIcon type={showConfirmPassword ? 2 : 1} className="h-5 w-5 text-gray-400" />
+                </span>
+              </div>
 
               <button
                 type="submit"
@@ -121,6 +162,7 @@ export default function Register({ onSwitch }) {
                 {loading ? "Processando..." : "Registrar"}
               </button>
             </form>
+
             {confirmationLink && (
               <div className="mt-4 text-center text-sm">
                 <p className="mb-2">Confirme sua conta clicando no link abaixo:</p>
