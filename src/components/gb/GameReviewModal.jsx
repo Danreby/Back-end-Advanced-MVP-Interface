@@ -301,7 +301,7 @@ export default function GameReviewModal({ isOpen, onClose, game, onImport, onSav
                         </div>
                       ) : (
                         <div className="space-y-2">
-                          <textarea rows={4} value={draftText} onChange={(e) => setDraftText(e.target.value)} className="w-full p-2 dark:text-white dark:bg-transparent border rounded text-sm" placeholder="Escreva sua review..." />
+                          <textarea rows={4} maxLength={255} value={draftText} onChange={(e) => setDraftText(e.target.value)} className="w-full p-2 dark:text-white dark:bg-transparent border rounded text-sm" placeholder="Escreva sua review..." />
                           {error && <div className="text-sm text-red-500">{error}</div>}
                           <div className="flex items-center gap-3">
                             <div className="ml-auto flex gap-2">

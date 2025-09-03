@@ -1,12 +1,42 @@
-# React + Vite
+# Front-end - Projeto MVP de Back-End Avançado
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Este repositório contém a **interface** do projeto para o MVP do curso de Back-End Avançado na PUC-RIO, desenvolvido em **React**, responsável pela interface do usuário e comunicação com a API back-end (em Python).
 
-Currently, two official plugins are available:
+## Tecnologias Utilizadas
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **React** - Biblioteca principal para construção da interface.
+- **Axios** - Para chamadas HTTP à API.
+- **Framer Motion** - Para animações.
+- **Tailwind CSS** - Para estilização rápida e responsiva.
+- **React Toastify** - Para notificações.
 
-## Expanding the ESLint configuration
+## Estrutura do Projeto
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```text
+src/
+├─ API/                  # Funções para comunicação com a API
+├─ components/           # Componentes reutilizáveis
+│  ├─ common/            # Navbar, modais, etc.
+│  ├─ games/             # Componentes de listagem dos itens e afins.
+│  ├─ gb/                # Componentes específicos do catálogo de jogos
+│  ├─ ui/                # Botões, inputs, rating stars, etc.
+│  └─ icons/             # Icones usados no projeto.
+├─ hooks/                # Hooks usados no projeto
+├─ pages/                # Páginas principais (Dashboard, About, Login, etc.)
+├─ App.jsx               # Componente principal
+└─ index.jsx             # Ponto de entrada da aplicação
+```
+# Instalação
+## Clone do repositório
+git clone <URL_DO_REPOSITORIO_FRONTEND>
+cd <PASTA_DO_FRONTEND>
+
+## Instalação de dependencias
+npm install
+ ou
+yarn install
+
+## Configuração
+Crie um arquivo .env na raiz do front-end com as seguintes variáveis:
+
+REACT_APP_API_URL=http://localhost:8000/api

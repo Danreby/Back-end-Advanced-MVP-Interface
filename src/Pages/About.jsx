@@ -122,7 +122,7 @@ export default function About() {
                     <li>JWT para autenticação segura.</li>
                 </ul>
                 <ul className="list-disc list-inside mt-2 border rounded-lg p-2">Back-End:
-                    <li>Python com Flask para a API;</li>
+                    <li>Python com FastAPI para a API;</li>
                     <li>SQLAlchemy para ORM;</li>
                     <li>MySQL como banco de dados;</li>
                     <li>Docker para conteinerização.</li>
