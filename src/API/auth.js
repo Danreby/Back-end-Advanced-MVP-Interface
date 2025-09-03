@@ -4,6 +4,7 @@ import api from "./axios";
 // Registrar usuário
 export const register = async (data) => {
   const response = await api.post("/auth/register", data);
+  // Retorna inclusive o confirmation_url que o backend fornece
   return response.data;
 };
 
@@ -16,16 +17,27 @@ export const login = async (data) => {
     password: data.password,
   }).toString();
 
-  const response = await api.post("/auth/login", body, {
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-  });
+  try {
+    const response = await api.post("/auth/login", body, {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
 
-  // salva token somente se o login foi bem-sucedido
-  if (response?.data?.access_token) {
-    localStorage.setItem("token", response.data.access_token);
+    if (response?.data?.access_token) {
+      localStorage.setItem("token", response.data.access_token);
+    }
+
+    return response.data;
+  } catch (err) {
+    // Se a conta não estiver ativa, o backend retorna 400
+    if (
+      err.response?.status === 400 &&
+      typeof err.response?.data?.detail === "string" &&
+      err.response.data.detail.toLowerCase().includes("not active")
+    ) {
+      throw new Error("Conta ainda não confirmada. Reenviamos o e-mail de ativação.");
+    }
+    throw err;
   }
-
-  return response.data;
 };
 
 // Confirmar email (opcional — backend faz redirect quando o usuário clica no link)
@@ -34,7 +46,7 @@ export const confirmEmail = async (token) => {
   return response.data;
 };
 
-// Reenviar e-mail de confirmação (backend: POST /auth/resend-confirmation)
+// Reenviar e-mail de confirmação
 export const resendConfirmation = async (email) => {
   const response = await api.post("/auth/resend-confirmation", { email });
   return response.data;

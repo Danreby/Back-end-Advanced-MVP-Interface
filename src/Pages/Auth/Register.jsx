@@ -8,31 +8,39 @@ export default function Register({ onSwitch }) {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [confirmationLink, setConfirmationLink] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Faz o registro — backend cria usuário INATIVO e envia e-mail de confirmação
-      await register({ name, email, password });
+      const res = await register({ name, email, password });
 
-      // Não faz login automático (não será possível enquanto o usuário estiver inativo)
-      toast.success("Conta criada com sucesso! Verifique seu e-mail para confirmar a conta.");
+      const confirmationUrl = res?.confirmation_url;
 
-      // redireciona para uma tela de "verifique seu e-mail" ou para login
-      // aqui eu redireciono para /login (você pode ter uma rota /auth/check-email)
-      setTimeout(() => {
-        window.location.href = "/login";
-      }, 1800);
+      if (confirmationUrl) {
+        toast.success("Conta criada! Clique no link abaixo para confirmar.");
+        setConfirmationLink(confirmationUrl);
+      } else {
+        toast.success("Conta criada! Verifique seu e-mail para confirmar a conta.");
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 1800);
+      }
     } catch (err) {
       console.error(err);
-
-      // Quando o backend manda 400 com detalhe sobre o e-mail já cadastrado:
-      if (err.response?.status === 400 && typeof err.response?.data?.detail === "string" && err.response.data.detail.toLowerCase().includes("email")) {
+      if (
+        err.response?.status === 400 &&
+        typeof err.response?.data?.detail === "string" &&
+        err.response.data.detail.toLowerCase().includes("email")
+      ) {
         toast.error("Email já está em uso.");
-      } else if (err.response?.status === 400 && typeof err.response?.data?.detail === "string" && err.response.data.detail.toLowerCase().includes("active")) {
-        // caso o backend retorne algo como "Account is not active..."
+      } else if (
+        err.response?.status === 400 &&
+        typeof err.response?.data?.detail === "string" &&
+        err.response.data.detail.toLowerCase().includes("active")
+      ) {
         toast.info("Conta registrada mas ainda não ativa. Verifique seu e-mail.");
       } else if (err.response?.status === 422) {
         toast.error("Dados inválidos. Verifique os campos.");
@@ -113,6 +121,19 @@ export default function Register({ onSwitch }) {
                 {loading ? "Processando..." : "Registrar"}
               </button>
             </form>
+            {confirmationLink && (
+              <div className="mt-4 text-center text-sm">
+                <p className="mb-2">Confirme sua conta clicando no link abaixo:</p>
+                <a
+                  href={confirmationLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 underline hover:opacity-80"
+                >
+                  Confirmar conta
+                </a>
+              </div>
+            )}
 
             <div className="mt-4 text-center text-sm">
               Já tem conta?{" "}
