@@ -1,5 +1,6 @@
+// src/pages/auth/Register.jsx (ou onde estiver o seu componente)
 import { useState } from "react";
-import { register, login } from "../../API/auth";
+import { register } from "../../API/auth";
 import { toast } from "react-toastify";
 
 export default function Register({ onSwitch }) {
@@ -7,25 +8,40 @@ export default function Register({ onSwitch }) {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [confirmationLink, setConfirmationLink] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      await register({ name, email, password });
+      const res = await register({ name, email, password });
 
-      toast.success("Conta criada com sucesso! Fazendo login...");
+      const confirmationUrl = res?.confirmation_url;
 
-      const data = await login({ email, password });
-      localStorage.setItem("token", data.access_token);
-
-      window.location.href = "/";
+      if (confirmationUrl) {
+        toast.success("Conta criada! Clique no link abaixo para confirmar.");
+        setConfirmationLink(confirmationUrl);
+      } else {
+        toast.success("Conta criada! Verifique seu e-mail para confirmar a conta.");
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 1800);
+      }
     } catch (err) {
       console.error(err);
-
-      if (err.response?.status === 400 && err.response?.data?.detail?.includes("email")) {
+      if (
+        err.response?.status === 400 &&
+        typeof err.response?.data?.detail === "string" &&
+        err.response.data.detail.toLowerCase().includes("email")
+      ) {
         toast.error("Email já está em uso.");
+      } else if (
+        err.response?.status === 400 &&
+        typeof err.response?.data?.detail === "string" &&
+        err.response.data.detail.toLowerCase().includes("active")
+      ) {
+        toast.info("Conta registrada mas ainda não ativa. Verifique seu e-mail.");
       } else if (err.response?.status === 422) {
         toast.error("Dados inválidos. Verifique os campos.");
       } else {
@@ -40,7 +56,7 @@ export default function Register({ onSwitch }) {
     if (typeof onSwitch === "function") {
       onSwitch();
     } else {
-      window.location.href = "/Login";
+      window.location.href = "/login";
     }
   };
 
@@ -105,6 +121,19 @@ export default function Register({ onSwitch }) {
                 {loading ? "Processando..." : "Registrar"}
               </button>
             </form>
+            {confirmationLink && (
+              <div className="mt-4 text-center text-sm">
+                <p className="mb-2">Confirme sua conta clicando no link abaixo:</p>
+                <a
+                  href={confirmationLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 underline hover:opacity-80"
+                >
+                  Confirmar conta
+                </a>
+              </div>
+            )}
 
             <div className="mt-4 text-center text-sm">
               Já tem conta?{" "}
