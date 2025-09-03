@@ -1,5 +1,5 @@
 // src/pages/auth/Register.jsx
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { register } from "../../API/auth";
 import { toast } from "react-toastify";
 import EyeIcon from "../../components/icons/EyeIcon";
@@ -14,12 +14,46 @@ export default function Register({ onSwitch }) {
   const [loading, setLoading] = useState(false);
   const [confirmationLink, setConfirmationLink] = useState(null);
 
+  const nameRef = useRef(null);
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
+  const confirmPasswordRef = useRef(null);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
+    if (!name.trim()) {
+      toast.error("O campo Nome é obrigatório.");
+      nameRef.current?.focus();
+      setLoading(false);
+      return;
+    }
+    if (!email.trim()) {
+      toast.error("O campo Email é obrigatório.");
+      emailRef.current?.focus();
+      setLoading(false);
+      return;
+    }
+    if (!password.trim()) {
+      toast.error("O campo Senha é obrigatório.");
+      passwordRef.current?.focus();
+      setLoading(false);
+      return;
+    }
+    if (!confirmPassword.trim()) {
+      toast.error("O campo Confirmar Senha é obrigatório.");
+      confirmPasswordRef.current?.focus();
+      setLoading(false);
+      return;
+    }
     if (password !== confirmPassword) {
       toast.error("As senhas não coincidem.");
+      setLoading(false);
+      return;
+    }
+    if (password.length < 6) {
+      toast.error("A senha deve ter pelo menos 6 caracteres.");
       setLoading(false);
       return;
     }
@@ -62,6 +96,7 @@ export default function Register({ onSwitch }) {
     }
   };
 
+
   const handleSwitch = () => {
     if (typeof onSwitch === "function") {
       onSwitch();
@@ -92,36 +127,38 @@ export default function Register({ onSwitch }) {
                 placeholder="Nome de usuário"
                 maxLength={255}
                 value={name}
+                ref={nameRef}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full p-3 rounded-xl border border-gray-300
                 dark:bg-gray-800 dark:border-gray-700
                 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-400"
-                required
+                
               />
               <input
                 type="email"
                 placeholder="Email"
                 maxLength={255}
                 value={email}
+                ref={emailRef}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full p-3 rounded-xl border border-gray-300
                 dark:bg-gray-800 dark:border-gray-700
                 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-400"
-                required
+                
               />
               
-              {/* Campo Senha */}
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Senha"
                   maxLength={255}
                   value={password}
+                  ref={passwordRef}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full p-3 rounded-xl border border-gray-300
                   dark:bg-gray-800 dark:border-gray-700
                   focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-400"
-                  required
+                  
                 />
                 <span
                   onClick={() => setShowPassword(!showPassword)}
@@ -131,18 +168,18 @@ export default function Register({ onSwitch }) {
                 </span>
               </div>
 
-              {/* Campo Confirmar Senha */}
               <div className="relative">
                 <input
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Confirmar Senha"
                   maxLength={255}
                   value={confirmPassword}
+                  ref={confirmPasswordRef}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full p-3 rounded-xl border border-gray-300
                   dark:bg-gray-800 dark:border-gray-700
                   focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-400"
-                  required
+                  
                 />
                 <span
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
