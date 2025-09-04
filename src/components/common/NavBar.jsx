@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import api from "../../API/axios";
 
 export function Navbar({ user, onLogout, onNavigate }) {
@@ -6,6 +6,21 @@ export function Navbar({ user, onLogout, onNavigate }) {
   const [userOpen, setUserOpen] = useState(false);
   const [theme, setTheme] = useState("light");
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
+
+  const userDropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
+        setUserOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -113,7 +128,7 @@ export function Navbar({ user, onLogout, onNavigate }) {
               {user ? user.name : ""}
             </div>
 
-            <div className="hidden sm:block relative">
+            <div className="hidden sm:block relative" ref={userDropdownRef}>
               <button
                 onClick={() => setUserOpen((s) => !s)}
                 className="flex items-center gap-2 px-3 py-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none"
