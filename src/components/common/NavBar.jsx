@@ -98,9 +98,9 @@ export function Navbar({ user, onLogout, onNavigate }) {
               aria-label="Ir para Home"
             >
               <div className="h-9 w-9 rounded-md bg-indigo-600 flex items-center justify-center text-white font-bold">
-                CG
+                G4
               </div>
-              <span className="font-semibold text-lg text-gray-900 dark:text-gray-100">CatGame</span>
+              <span className="font-semibold text-lg text-gray-900 dark:text-gray-100">G4M3</span>
             </button>
 
             <nav className="hidden sm:flex gap-2 items-center" aria-label="Navegação principal">

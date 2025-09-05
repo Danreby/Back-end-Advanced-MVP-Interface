@@ -19,7 +19,6 @@ export default function MyGamesFilter({
     <AnimatePresence>
       {open && (
         <>
-          {/* overlay */}
           <motion.div
             key="mg-backdrop"
             initial={{ opacity: 0 }}
@@ -31,7 +30,6 @@ export default function MyGamesFilter({
             aria-hidden="true"
           />
 
-          {/* drawer */}
           <motion.aside
             key="mg-drawer"
             initial={{ x: "100%" }}
@@ -88,6 +86,8 @@ export default function MyGamesFilter({
                   <option value="all">Todos</option>
                   <option value="Wishlist">Wishlist</option>
                   <option value="Playing">Playing</option>
+                  <option value="On_going">On Going</option>
+                  <option value="Stand_by">Stand By</option>
                   <option value="Completed">Completed</option>
                 </select>
               </div>
@@ -99,12 +99,11 @@ export default function MyGamesFilter({
                     type="number"
                     min={0}
                     max={10}
-                    step={0.1}
+                    step={1}
                     value={minRating}
                     onChange={(e) => setMinRating(e.target.value)}
                     className="w-24 rounded-md p-2 border bg-white dark:text-white dark:bg-gray-800 text-sm"
                   />
-                  <div className="text-xs text-gray-500">= nota</div>
                 </div>
               </div>
 

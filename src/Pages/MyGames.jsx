@@ -195,7 +195,7 @@ export default function MyGames() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-slate-900 dark:via-indigo-950 dark:to-black transition-colors duration-300">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-slate-900 dark:via-indigo-950 dark:to-black transition-colors duration-300">
       <Navbar user={user} onLogout={logout} />
 
       <main className="max-w-7xl mx-auto p-6 text-gray-900 dark:text-gray-100">

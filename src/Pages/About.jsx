@@ -66,7 +66,7 @@ export default function About() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-slate-900 dark:via-indigo-950 dark:to-black transition-colors duration-300">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-slate-900 dark:via-indigo-950 dark:to-black transition-colors duration-300">
       <motion.div
         className="absolute -left-20 -top-12 w-80 h-80 rounded-full filter blur-3xl opacity-40 bg-indigo-200/40 dark:bg-indigo-900/60"
         animate={{ y: [0, -18, 0], x: [0, 8, -8, 0], rotate: [0, 2, -2, 0] }}
@@ -109,7 +109,7 @@ export default function About() {
             Este projeto acadêmico foi desenvolvido para a entrega do MVP da disciplina de {" "}
             <span className="font-semibold">Back-End Avançado</span> na <span className="font-semibold">PUC-RIO</span>. {" "}  
             A ideia surgiu da minha paixão por jogos e a necessidade de organizar minha coleção.  
-            Assim, nasceu o <span className="font-semibold">CatGame</span>, um catálogo pessoal de jogos com avaliações e filtros.
+            Assim, nasceu o <span className="font-semibold">G4M3</span>, um catálogo pessoal de jogos com avaliações e filtros.
           </p>
 
           <p className="mt-4 text-lg leading-relaxed">
