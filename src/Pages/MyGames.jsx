@@ -151,15 +151,32 @@ export default function MyGames() {
         if (g.id) {
           backendGame = await gamesApi.getGameWithMyReview(g.id).catch(() => null);
         }
+
         const external =
-          backendGame?.external_guid || backendGame?.externalGuid || g.external_guid || g.externalGuid || g.externalId || g.guid || null;
+          backendGame?.external_guid ||
+          backendGame?.externalGuid ||
+          g.external_guid ||
+          g.externalGuid ||
+          g.externalId ||
+          g.guid ||
+          null;
+
         if (!external) throw new Error("external_guid do GiantBomb não encontrado para este jogo.");
-        const gbData = await getGameDetails(external);
-        setSelectedGame({ ...(backendGame ?? g), giantbomb: gbData });
+
+        const res = await getGameDetails(external);
+
+        const gbGame = res?.game || null;
+
+        if (gbGame) {
+          setSelectedGame({ ...(backendGame ?? {}), ...gbGame });
+        } else {
+          setSelectedGame(backendGame ?? g);
+        }
+
         setDrawerOpen(false);
       } catch (err) {
         console.error("Erro ao carregar detalhes do GiantBomb:", err);
-        setGbError(err.message || String(err));
+        setGbError(err?.message || String(err));
       } finally {
         setLoadingGb(false);
       }

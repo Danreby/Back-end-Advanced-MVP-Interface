@@ -151,7 +151,7 @@ export function Navbar({ user, onLogout, onNavigate }) {
               {userOpen && (
                 <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 border rounded shadow-md py-1">
                   <button onClick={() => handleNavClick("/profile")} className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-white">Perfil</button>
-                  <button onClick={() => handleNavClick("/settings")} className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-white">Configurações</button>
+                  {/* <button onClick={() => handleNavClick("/settings")} className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-white">Configurações</button> */}
                   <button onClick={() => { setUserOpen(false); onLogout && onLogout(); }} className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-white">Sair</button>
                 </div>
               )}

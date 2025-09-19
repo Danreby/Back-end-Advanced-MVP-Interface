@@ -114,14 +114,12 @@ export default function GameList({ games, onView, onEdit, loadAll }) {
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-baseline gap-2">
-                        <a
-                          href={`/games/${g.id ?? g._id}`}
-                          onClick={(e) => e.stopPropagation()}
+                        <div
                           className="font-medium truncate hover:underline"
                           title={g.name}
                         >
                           {g.name}
-                        </a>
+                        </div>
                         <div className="text-xs text-gray-500">· {g.status || "—"}</div>
                       </div>
                       <div className="text-sm text-gray-500 truncate">{g.description || "—"}</div>
