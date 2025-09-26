@@ -615,11 +615,11 @@ export default function GameReviewModal({
                 <div className="min-w-0 w-full">
                   <div className="text-sm text-gray-500 dark:text-gray-400">Data de Lançamento: {date}</div>
 
-                  <div className="mt-3 text-sm leading-relaxed text-gray-700 dark:text-gray-200 break-words">
+                  <div className="mt-3 text-sm leading-relaxed text-gray-700 dark:text-gray-200 break-words truncate">
                     {sanitizedHtml ? <div className="line-clamp-6 md:line-clamp-8" dangerouslySetInnerHTML={{ __html: sanitizedHtml }} /> : <p className="italic text-gray-500">Sem descrição disponível.</p>}
                   </div>
 
-                  <div className="mt-4 text-sm text-gray-600 dark:text-gray-300">
+                  <div className="mt-4 text-sm text-gray-600 dark:text-gray-300 truncate">
                     <strong className="font-medium">Plataformas:</strong> <span className="ml-1">{platformsStr}</span>
                   </div>
 
