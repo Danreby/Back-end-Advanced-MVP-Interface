@@ -118,8 +118,8 @@ export default function About() {
                 <ul className="list-disc list-inside mt-2 border rounded-lg p-2">Front-End:
                     <li>React para a interface do usuário;</li>
                     <li>Tailwind CSS para estilização;</li>
-                    {/* <li>Node.js</li> */}
-                    <li>JWT para autenticação segura.</li>
+                    <li>JWT para autenticação segura;</li>
+                    <li>Framer-Motion para animação das paginas.</li>
                 </ul>
                 <ul className="list-disc list-inside mt-2 border rounded-lg p-2">Back-End:
                     <li>Python com FastAPI para a API;</li>
@@ -129,6 +129,14 @@ export default function About() {
                 </ul>
             </div>
           </p>
+          <div className="grid grid-cols-2 border-b rounded-md px-2 py-1">
+            <a href="https://github.com/Danreby/Back-end-Advanced-MVP-Interface" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 hover:underline">
+              Link para o repositório da interface
+            </a>
+            <a href="https://github.com/Danreby/Back-end-Advanced-MVP-API" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 hover:underline">
+              Link para o repositório da API
+            </a>
+          </div>
 
           <p className="mt-4 text-lg leading-relaxed">
             Criado por <span className="font-semibold">Bernardo Santos Rolim</span>, um pequeno caçador
