@@ -12,6 +12,7 @@ import FilterButton from "../components/common/FilterButton";
 import { getGameDetails, importGameToCatalog } from "../API/gbApi";
 import * as gamesApi from "../API/games";
 import * as reviewsApi from "../API/reviews";
+import { Footer } from "../components/common/Footer";
 
 function useDebounced(value, delay = 250) {
   const [debounced, setDebounced] = useState(value);
@@ -263,6 +264,7 @@ export default function MyGames() {
       />
 
       <LoadingOverlay open={loadingGames || loadingProfile || loadingGb} text={loadingGb ? "Buscando detalhes..." : "Carregando..."} />
+      <Footer variant="fixed" />
     </div>
   );
 }

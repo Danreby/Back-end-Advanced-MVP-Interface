@@ -5,6 +5,7 @@ import { getProfile, updateProfile } from "../API/user";
 import api from "../API/axios"; 
 import { logout } from "../API/auth";
 import LoadingOverlay from "../components/common/LoadingOverlay";
+import { Footer } from "../components/common/Footer";
 
 export default function Profile() {
   const [user, setUser] = useState(null);
@@ -376,6 +377,7 @@ export default function Profile() {
       </div>
 
       <LoadingOverlay open={saving} text={saving ? "Salvando..." : "Carregando..."} />
+      <Footer variant="fixed" />
     </div>
   );
 }

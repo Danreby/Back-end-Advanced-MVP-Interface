@@ -4,6 +4,7 @@ import { getProfile } from "../API/user";
 import { Navbar } from "../components/common/NavBar";
 import { logout, isAuthenticated } from "../API/auth";
 import LoadingOverlay from "../components/common/LoadingOverlay";
+import { Footer } from "../components/common/Footer";
 
 export default function About() {
   const [user, setUser] = useState(null);
@@ -160,6 +161,7 @@ export default function About() {
           className="absolute right-24 top-40 w-8 h-8 rounded-full bg-gray-100/20 dark:bg-white/8 blur-sm"
         />
       </div>
+      <Footer variant="fixed" />
     </div>
   );
 }
