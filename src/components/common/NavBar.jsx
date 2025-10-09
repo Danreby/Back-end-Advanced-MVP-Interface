@@ -107,6 +107,7 @@ export function Navbar({ user, onLogout, onNavigate }) {
               {navButton("/", "Dashboard")}
               {navButton("/games", "Meus Jogos")}
               {navButton("/about", "Sobre")}
+              {navButton("/user", "Amigos")}
             </nav>
           </div>
 

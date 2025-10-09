@@ -74,6 +74,20 @@ export async function upsertGameStatus({ id = null, external_guid = null, status
   const res = await api.post("/games/upsert-status", payload);
   return res.data;
 }
+export async function createSessionForGame(gameId, payload) {
+  const res = await api.post(`/games/${gameId}/sessions`, payload);
+  return res.data;
+}
+
+export async function listSessionsForGame(gameId, { skip = 0, limit = 100 } = {}) {
+  const res = await api.get(`/games/${gameId}/sessions`, { params: { skip, limit } });
+  return res.data;
+}
+
+export async function getCoplayersForSessionFromGame(sessionId) {
+  const res = await api.get(`/games/sessions/${sessionId}/coplayers`);
+  return res.data; 
+}
 
 export default {
   listMyGames,
@@ -87,4 +101,7 @@ export default {
   updateGameStatus,
   createGameWithStatus,
   upsertGameStatus,
+  createSessionForGame,
+  listSessionsForGame,
+  getCoplayersForSessionFromGame,
 };
