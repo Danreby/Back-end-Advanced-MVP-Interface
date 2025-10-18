@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import api from "../../API/axios";
 
 export default function UserList({
   items = [],
@@ -26,6 +27,20 @@ function UserListItem({ user, onClick = () => {} }) {
 
   const showImage = !!user?.avatar_url && !imgError;
 
+  function resolveAvatarUrl(avatar_url) {
+    if (!avatar_url) return null;
+    if (avatar_url.startsWith("http://") || avatar_url.startsWith("https://")) return avatar_url;
+
+    const baseFromApi = api && api.defaults && api.defaults.baseURL ? String(api.defaults.baseURL).replace(/\/+$/, "") : null;
+    const fallbackOrigin = typeof window !== "undefined" ? String(window.location.origin).replace(/\/+$/, "") : "";
+
+    const base = (baseFromApi && (baseFromApi.startsWith("http://") || baseFromApi.startsWith("https://"))) ? baseFromApi : fallbackOrigin;
+
+    if (!base) return avatar_url; 
+
+    if (avatar_url.startsWith("/")) return `${base}${avatar_url}`;
+    return `${base}/${avatar_url.replace(/^\/+/, "")}`;
+  }
   return (
     <button
       onClick={onClick}
@@ -35,11 +50,9 @@ function UserListItem({ user, onClick = () => {} }) {
       <div className="w-12 h-12 flex-shrink-0 rounded-full overflow-hidden flex items-center justify-center bg-gray-100 dark:bg-gray-700 text-lg font-bold">
         {showImage ? (
           <img
-            src={user.avatar_url}
-            alt={user.name || user.email || "Avatar"}
-            className="w-full h-full object-cover"
-            onError={() => setImgError(true)}
-            loading="lazy"
+            src={user?.avatar_url ? resolveAvatarUrl(user.avatar_url) : "/default-avatar.png"}
+            alt={user && user.email ? user.email.charAt(0).toUpperCase() : "U"}
+            className="rounded-full object-cover outline-dotted outline-1 outline-gray-400 dark:outline-gray-600"
           />
         ) : (
           <span className="text-gray-700 dark:text-gray-100 select-none">{initials}</span>
