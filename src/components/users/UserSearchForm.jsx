@@ -15,7 +15,7 @@ export default function UserSearchForm({ value = "", onChange = () => {}, onSear
         value={q}
         onChange={(e) => { setQ(e.target.value); onChange(e.target.value); }}
         placeholder="Pesquisar por nome ou email..."
-        className="flex-1 rounded-md p-3 border bg-white dark:bg-gray-800"
+        className="flex-1 rounded-md p-3 border bg-white dark:bg-gray-800 dark:text-white"
       />
       <button type="submit" className="px-4 py-2 rounded-md bg-indigo-600 text-white">Buscar</button>
     </form>

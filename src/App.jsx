@@ -8,7 +8,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import MyGames from "./Pages/MyGames";
 import About from "./Pages/About";
-import SearchUsersPage from "./Pages/Friends/SearchUsersPage";
+import SearchUsersPage from "./Pages/SearchUsersPage";
 
 export default function App() {
   return (
