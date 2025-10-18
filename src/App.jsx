@@ -9,6 +9,7 @@ import "react-toastify/dist/ReactToastify.css";
 import MyGames from "./Pages/MyGames";
 import About from "./Pages/About";
 import SearchUsersPage from "./Pages/SearchUsersPage";
+import UserProfilePage from "./Pages/Friends/UserProfilePage";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="/games" element={isAuthenticated() ? <MyGames /> : <Navigate to="/login" />} />
         <Route path="/about" element={isAuthenticated() ? <About /> : <Navigate to="/login" />} />
         <Route path="/user" element={isAuthenticated() ? <SearchUsersPage /> : <Navigate to="/login" />} />
+        <Route path="/users/:id" element={isAuthenticated() ? <UserProfilePage /> : <Navigate to="/login" />} />
         <Route path="/" element={isAuthenticated() ? <Dashboard /> : <Navigate to="/login" />} />
       </Routes>
       <ToastContainer theme="dark" position="top-right" autoClose={3000} />

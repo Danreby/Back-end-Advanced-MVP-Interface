@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Navbar } from "../components/common/NavBar";
-import { Footer } from "../components/common/Footer";
-import LoadingOverlay from "../components/common/LoadingOverlay";
-import userApi from "../API/user";
-import { getProfile, listMyFriends, sendFriendRequest, blockUser } from "../API/user";
-import FriendButtons from "../components/users/FriendButtons";
+import userApi, { getProfile } from "../../API/user";
+import FriendButtons from "../../components/users/FriendButtons";
+import { Navbar } from "../../components/common/NavBar";
+import { Footer } from "../../components/common/Footer";
+import LoadingOverlay from "../../components/common/LoadingOverlay";
 
 export default function UserProfilePage() {
   const { id } = useParams();
@@ -18,84 +17,134 @@ export default function UserProfilePage() {
 
   useEffect(() => {
     let mounted = true;
+
     (async () => {
       setLoading(true);
+      setError(null);
+
       try {
-        const [u, me, myFriends] = await Promise.allSettled([
-          userApi.getUserById(id),
-          getProfile(),
-          userApi.listMyFriends ? userApi.listMyFriends() : userApi.listMyFriends 
-        ]);
+        const promises = [
+          (typeof userApi.getUserById === "function") ? userApi.getUserById(id) : Promise.reject(new Error("getUserById não disponível")),
+          getProfile ? getProfile() : Promise.resolve(null),
+          typeof userApi.listMyFriends === "function" ? userApi.listMyFriends() : Promise.resolve([]),
+        ];
+
+        const [uRes, meRes, frRes] = await Promise.allSettled(promises);
 
         if (!mounted) return;
 
-        if (u.status === "fulfilled") setUser(u.value);
-        else {
-          setError("Usuário não encontrado");
+        if (uRes.status === "fulfilled") {
+          const maybeResponse = uRes.value;
+          const uData = maybeResponse && maybeResponse.data !== undefined ? maybeResponse.data : maybeResponse;
+
+          if (!uData) {
+            setError("Usuário não encontrado");
+            setUser(null);
+            return;
+          }
+          setUser(uData);
+        } else {
+          const reason = uRes.reason;
+          const status = reason && reason.response && reason.response.status;
+          if (status === 404) setError("Usuário não encontrado");
+          else setError("Erro ao carregar usuário");
+          setUser(null);
           return;
         }
 
-        if (me.status === "fulfilled") setMyProfile(me.value);
-        if (myFriends.status === "fulfilled") setFriends(myFriends.value || []);
+        if (meRes && meRes.status === "fulfilled") {
+          const maybeResponse = meRes.value;
+          const meData = maybeResponse && maybeResponse.data !== undefined ? maybeResponse.data : maybeResponse;
+          setMyProfile(meData || null);
+        } else {
+          setMyProfile(null);
+        }
+
+        if (frRes && frRes.status === "fulfilled") {
+          const maybeResponse = frRes.value;
+          const frData = maybeResponse && maybeResponse.data !== undefined ? maybeResponse.data : maybeResponse;
+          setFriends(Array.isArray(frData) ? frData : []);
+        } else {
+          setFriends([]);
+        }
       } catch (err) {
-        console.error(err);
-        setError("Erro ao carregar página");
+        console.error("Erro no carregamento do perfil:", err);
+        if (mounted) setError("Erro ao carregar página");
       } finally {
-        mounted && setLoading(false);
+        if (mounted) setLoading(false);
       }
     })();
-    return () => (mounted = false);
+
+    return () => {
+      mounted = false;
+    };
   }, [id]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-        <Navbar />
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-slate-900 dark:via-indigo-950 dark:to-black transition-colors duration-300">
+        <Navbar user={myProfile} />
         <main className="max-w-4xl mx-auto p-6">
-          <div className="rounded bg-white p-6 shadow">Carregando perfil...</div>
+          <div className="rounded-3xl p-6 bg-white/95 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 shadow-2xl">
+            <div>Carregando perfil...</div>
+          </div>
         </main>
-        <Footer />
-        <LoadingOverlay open />
+        <Footer variant="fixed"/>
+        <LoadingOverlay open={true} text="Carregando perfil..." />
       </div>
     );
   }
 
   if (error || !user) {
     return (
-      <div className="min-h-screen">
-        <Navbar />
+      <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-slate-900 dark:via-indigo-950 dark:to-black transition-colors duration-300">
+        <Navbar user={myProfile} />
         <main className="max-w-4xl mx-auto p-6">
-          <div className="rounded bg-white p-6 shadow">{error || "Usuário não encontrado"}</div>
-          <button className="mt-4" onClick={() => navigate(-1)}>Voltar</button>
+          <div className="rounded-3xl p-6 bg-white/95 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 shadow-2xl">
+            <div className="text-lg font-medium text-gray-800 dark:text-gray-100">{error || "Usuário não encontrado"}</div>
+            <div className="mt-4">
+              <button
+                onClick={() => navigate(-1)}
+                className="px-4 py-2 rounded-full bg-white/95 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 shadow-sm"
+              >
+                Voltar
+              </button>
+            </div>
+          </div>
         </main>
-        <Footer />
+        <Footer variant="fixed"/>
       </div>
     );
   }
 
   const isMe = myProfile && myProfile.id === user.id;
-  const isFriend = friends.some((f) => f.id === user.id);
+  const isFriend = friends.some((f) => String(f.id) === String(user.id));
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-      <Navbar />
-      <main className="max-w-3xl mx-auto p-6">
-        <div className="rounded p-6 bg-white dark:bg-gray-800 shadow">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-slate-900 dark:via-indigo-950 dark:to-black transition-colors duration-300">
+      <Navbar user={myProfile} />
+      <main className="max-w-4xl mx-auto p-6">
+        <div className="rounded-3xl p-6 bg-white/95 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 shadow-2xl">
           <div className="flex gap-6 items-center">
             <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-3xl">
-              {user.avatar_url ? <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" /> : (user.name ? user.name.charAt(0).toUpperCase() : "U")}
+              {user.avatar_url ? (
+                <img src={user.avatar_url} alt={user.name || user.email} className="w-full h-full object-cover" />
+              ) : (
+                (user.name ? user.name.charAt(0).toUpperCase() : "U")
+              )}
             </div>
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold">{user.name || user.email}</h2>
-              <div className="text-sm text-gray-600 dark:text-gray-300">{user.email}</div>
+
+            <div className="flex-1 min-w-0">
+              <h2 className="text-2xl font-bold dark:text-white">{user.name || user.email}</h2>
+              <div className="text-sm text-gray-600 dark:text-gray-300 truncate">{user.email}</div>
               <div className="mt-2 text-sm text-gray-700 dark:text-gray-200">{user.bio || "—"}</div>
-              <div className="mt-3 flex gap-2 items-center">
-                <div className="text-sm text-gray-500">Membro desde: {user.created_at ? new Date(user.created_at).toLocaleDateString() : "-"}</div>
-                <div className="text-sm text-gray-500">• Jogos: {user.games_count ?? "-"}</div>
+              <div className="mt-3 flex gap-2 items-center text-sm text-gray-500">
+                <div>Membro desde: {user.created_at ? new Date(user.created_at).toLocaleDateString() : "-"}</div>
+                <div>• Jogos: {user.games_count ?? "-"}</div>
               </div>
             </div>
 
-            <div>
+            <div className="flex-shrink-0">
               {!isMe && (
                 <FriendButtons
                   targetUserId={user.id}
@@ -112,12 +161,14 @@ export default function UserProfilePage() {
             </div>
           </div>
 
+          {/* área extra do perfil */}
           <div className="mt-6">
+            {/* adicione aqui se quiser exibir mais seções: estatísticas, atividades, jogos, etc */}
           </div>
         </div>
       </main>
 
-      <Footer />
+      <Footer variant="fixed"/>
     </div>
   );
 }
