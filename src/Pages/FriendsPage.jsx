@@ -9,7 +9,7 @@ import { isAuthenticated, logout } from "../API/auth";
 import { useNavigate } from "react-router-dom";
 import UserList from "./Friends/UserList";
 
-export default function SearchUsersPage() {
+export default function FriendsPage() {
   const [user, setUser] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
