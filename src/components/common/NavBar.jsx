@@ -106,8 +106,8 @@ export function Navbar({ user, onLogout, onNavigate }) {
             <nav className="hidden sm:flex gap-2 items-center" aria-label="Navegação principal">
               {navButton("/", "Dashboard")}
               {navButton("/games", "Meus Jogos")}
-              {navButton("/about", "Sobre")}
               {navButton("/user", "Amigos")}
+              {navButton("/about", "Sobre")}
             </nav>
           </div>
 
@@ -174,6 +174,7 @@ export function Navbar({ user, onLogout, onNavigate }) {
           <div className="sm:hidden mt-2 pb-3 space-y-1">
             {navButton("/", "Dashboard")}
             {navButton("/games", "Meus Jogos")}
+            {navButton("/user", "Amigos")}
             {navButton("/about", "Sobre")}
             <hr className="border-gray-200 dark:border-gray-700" />
             {user && (

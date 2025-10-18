@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import userApi, { getProfile } from "../../API/user";
+import api from "../../API/axios";
 import FriendButtons from "../../components/users/FriendButtons";
 import { Navbar } from "../../components/common/NavBar";
 import { Footer } from "../../components/common/Footer";
@@ -120,6 +121,21 @@ export default function UserProfilePage() {
   const isMe = myProfile && myProfile.id === user.id;
   const isFriend = friends.some((f) => String(f.id) === String(user.id));
 
+  function resolveAvatarUrl(avatar_url) {
+    if (!avatar_url) return null;
+    if (avatar_url.startsWith("http://") || avatar_url.startsWith("https://")) return avatar_url;
+
+    const baseFromApi = api && api.defaults && api.defaults.baseURL ? String(api.defaults.baseURL).replace(/\/+$/, "") : null;
+    const fallbackOrigin = typeof window !== "undefined" ? String(window.location.origin).replace(/\/+$/, "") : "";
+
+    const base = (baseFromApi && (baseFromApi.startsWith("http://") || baseFromApi.startsWith("https://"))) ? baseFromApi : fallbackOrigin;
+
+    if (!base) return avatar_url; 
+
+    if (avatar_url.startsWith("/")) return `${base}${avatar_url}`;
+    return `${base}/${avatar_url.replace(/^\/+/, "")}`;
+  }
+
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-slate-900 dark:via-indigo-950 dark:to-black transition-colors duration-300">
       <Navbar user={myProfile} />
@@ -128,7 +144,11 @@ export default function UserProfilePage() {
           <div className="flex gap-6 items-center">
             <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-3xl">
               {user.avatar_url ? (
-                <img src={user.avatar_url} alt={user.name || user.email} className="w-full h-full object-cover" />
+              <img
+                src={user?.avatar_url ? resolveAvatarUrl(user.avatar_url) : "/default-avatar.png"}
+                alt={user && user.email ? user.email.charAt(0).toUpperCase() : "U"}
+                className="rounded-full object-cover outline-dotted outline-1 outline-gray-400 dark:outline-gray-600"
+              />
               ) : (
                 (user.name ? user.name.charAt(0).toUpperCase() : "U")
               )}
