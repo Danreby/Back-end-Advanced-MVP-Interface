@@ -56,8 +56,8 @@ export default function FriendButtons({ targetUserId, initialIsFriend = false, o
   if (isFriend) {
     return (
       <div className="flex gap-2">
-        <button className="px-4 py-2 rounded-md bg-green-100 text-green-800 border">Amigos</button>
-        <button onClick={handleBlock} disabled={loading} className="px-4 py-2 rounded-md bg-white border text-sm">Bloquear</button>
+        <div className="px-2 py-1 rounded-md bg-green-100 text-green-800 border cursor-default">Amigos</div>
+        {/* <button onClick={handleBlock} disabled={loading} className="px-4 py-2 rounded-md bg-white border text-sm">Bloquear</button> */}
       </div>
     );
   }
