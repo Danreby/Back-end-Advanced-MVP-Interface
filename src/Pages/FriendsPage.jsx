@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Navbar } from "../components/common/NavBar";
 import { Footer } from "../components/common/Footer";
@@ -7,7 +7,8 @@ import UserSearchForm from "../components/users/UserSearchForm";
 import userApi, { getProfile } from "../API/user";
 import { isAuthenticated, logout } from "../API/auth";
 import { useNavigate } from "react-router-dom";
-import UserList from "./Friends/UserList";
+import UserList from "../components/Friends/UserList";
+import FriendRequestsSection from "../components/Friends/FriendRequestsSection";
 
 export default function FriendsPage() {
   const [user, setUser] = useState(null);
@@ -21,6 +22,10 @@ export default function FriendsPage() {
 
   const [friends, setFriends] = useState([]);
   const [loadingFriends, setLoadingFriends] = useState(false);
+
+  const [friendRequests, setFriendRequests] = useState([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
+  const [errorRequests, setErrorRequests] = useState(null);
 
   const navigate = useNavigate();
 
@@ -50,7 +55,7 @@ export default function FriendsPage() {
     };
   }, []);
 
-  async function loadFriends() {
+  const loadFriends = useCallback(async () => {
     setLoadingFriends(true);
     try {
       const data = await userApi.listMyFriends();
@@ -62,11 +67,36 @@ export default function FriendsPage() {
     } finally {
       setLoadingFriends(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     if (user) loadFriends();
-  }, [user]);
+  }, [user, loadFriends]);
+
+  const loadFriendRequests = useCallback(async () => {
+    setLoadingRequests(true);
+    setErrorRequests(null);
+    try {
+      const data = await userApi.listMyFriendRequests();
+      const items = Array.isArray(data) ? data : data?.items ?? [];
+      setFriendRequests(items || []);
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status === 404) {
+        setFriendRequests([]);
+      } else {
+        console.error("Erro ao buscar solicitações:", err);
+        setErrorRequests("Não foi possível carregar solicitações");
+        setFriendRequests([]);
+      }
+    } finally {
+      setLoadingRequests(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user) loadFriendRequests();
+  }, [user, loadFriendRequests]);
 
   async function doSearch(q, { page = 1 } = {}) {
     if (!q || String(q).trim().length === 0) {
@@ -106,6 +136,44 @@ export default function FriendsPage() {
     navigate(`/users/${user.id}`);
   }
 
+  async function handleAcceptRequest(request) {
+    const id = request.id ?? request.request_id ?? request.requestId;
+    if (!id) return;
+
+    try {
+      const res = await userApi.acceptFriendRequest(id);
+      setFriendRequests((prev) => prev.filter((r) => (r.id ?? r.request_id) !== id));
+
+      const possibleFriend =
+        (res && res.friend) || (res && res.data) || (res && res.user) || null;
+
+      if (possibleFriend && possibleFriend.id) {
+        setFriends((prev) => {
+          if (prev.some((f) => String(f.id) === String(possibleFriend.id))) return prev;
+          return [possibleFriend, ...prev];
+        });
+      } else {
+        await loadFriends();
+      }
+    } catch (err) {
+      console.error("Erro ao aceitar solicitação:", err);
+      throw err;
+    }
+  }
+
+  async function handleRejectRequest(request) {
+    const id = request.id ?? request.request_id ?? request.requestId;
+    if (!id) return;
+
+    try {
+      await userApi.rejectFriendRequest(id);
+      setFriendRequests((prev) => prev.filter((r) => (r.id ?? r.request_id) !== id));
+    } catch (err) {
+      console.error("Erro ao rejeitar solicitação:", err);
+      throw err;
+    }
+  }
+
   if (loadingProfile) {
     return (
       <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-slate-900 dark:via-indigo-950 dark:to-black transition-colors duration-300">
@@ -138,6 +206,17 @@ export default function FriendsPage() {
                   {loadingFriends ? "Atualizando..." : "Atualizar"}
                 </button>
               </div>
+            </div>
+
+            <div className="mt-4">
+              <FriendRequestsSection
+                requests={friendRequests}
+                loading={loadingRequests}
+                error={errorRequests}
+                onAccept={handleAcceptRequest}
+                onReject={handleRejectRequest}
+                onRefresh={loadFriendRequests}
+              />
             </div>
 
             <div className="mt-3 h-[60vh] overflow-auto">
@@ -196,7 +275,7 @@ export default function FriendsPage() {
       </main>
 
       <Footer variant="fixed" />
-      <LoadingOverlay open={loading || loadingFriends} text={loading ? "Buscando usuários..." : "Carregando amigos..."} />
+      <LoadingOverlay open={loading || loadingFriends || loadingRequests} text={loading ? "Buscando usuários..." : loadingRequests ? "Carregando solicitações..." : "Carregando amigos..."} />
     </div>
   );
 }

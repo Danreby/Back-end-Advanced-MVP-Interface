@@ -9,7 +9,7 @@ import "react-toastify/dist/ReactToastify.css";
 import MyGames from "./Pages/MyGames";
 import About from "./Pages/About";
 import FriendsPage from "./Pages/FriendsPage";
-import UserProfilePage from "./Pages/Friends/UserProfilePage";
+import UserProfilePage from "./components/Friends/UserProfilePage";
 
 export default function App() {
   return (

@@ -52,7 +52,7 @@ export const deleteMySession = async (sessionId) => {
 
 export const getCoplayersForMySession = async (sessionId) => {
   const res = await api.get(`/users/sessions/${sessionId}/coplayers`);
-  return res.data; 
+  return res.data;
 };
 
 export const sendFriendRequest = async (payload) => {
@@ -62,6 +62,11 @@ export const sendFriendRequest = async (payload) => {
 
 export const listMyFriends = async () => {
   const res = await api.get("/users/me/friends");
+  return res.data;
+};
+
+export const listMyFriendRequests = async (params = {}) => {
+  const res = await api.get("/users/me/friends/requests", { params });
   return res.data;
 };
 
@@ -104,6 +109,7 @@ export default {
   getCoplayersForMySession,
   sendFriendRequest,
   listMyFriends,
+  listMyFriendRequests,
   acceptFriendRequest,
   rejectFriendRequest,
   blockUser,

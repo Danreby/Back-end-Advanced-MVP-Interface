@@ -2,10 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import userApi, { getProfile } from "../../API/user";
 import api from "../../API/axios";
-import FriendButtons from "../../components/users/FriendButtons";
-import { Navbar } from "../../components/common/NavBar";
-import { Footer } from "../../components/common/Footer";
-import LoadingOverlay from "../../components/common/LoadingOverlay";
+import FriendButtons from "../users/FriendButtons";
+import { Navbar } from "../common/NavBar";
+import { Footer } from "../common/Footer";
+import LoadingOverlay from "../common/LoadingOverlay";
 
 export default function UserProfilePage() {
   const { id } = useParams();
@@ -179,11 +179,6 @@ export default function UserProfilePage() {
                 />
               )}
             </div>
-          </div>
-
-          {/* área extra do perfil */}
-          <div className="mt-6">
-            {/* adicione aqui se quiser exibir mais seções: estatísticas, atividades, jogos, etc */}
           </div>
         </div>
       </main>
