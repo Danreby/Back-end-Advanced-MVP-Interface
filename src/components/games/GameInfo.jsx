@@ -22,18 +22,21 @@ export default function GameInfo({ title, date, sanitizedHtml, imageObj, platfor
       <div className="min-w-0 w-full">
         <div className="text-sm text-gray-500 dark:text-gray-400">Data de Lançamento: {date}</div>
 
-        <div className="mt-3 text-sm leading-relaxed text-gray-700 dark:text-gray-200 break-words truncate">
-          {sanitizedHtml ? <div className="line-clamp-6 md:line-clamp-8" dangerouslySetInnerHTML={{ __html: sanitizedHtml }} /> : <p className="italic text-gray-500">Sem descrição disponível.</p>}
+        <div className="mt-3 text-sm leading-relaxed text-gray-700 dark:text-gray-200 break-words">
+        {sanitizedHtml
+            ? <div className="line-clamp-5 md:line-clamp-8" dangerouslySetInnerHTML={{ __html: sanitizedHtml }}/>
+            : <p className="italic text-gray-500">Sem descrição disponível.</p>}
         </div>
 
-        <div className="mt-4 text-sm text-gray-600 dark:text-gray-300 truncate">
-          <strong className="font-medium">Plataformas:</strong> <span className="ml-1">{platformsStr}</span>
+        <div className="mt-4 text-sm text-gray-600 dark:text-gray-300">
+            <strong className="font-medium">Plataformas:</strong>
+            <span className="ml-1 line-clamp-5 block">{platformsStr}</span>
         </div>
 
         <div className="mt-4 text-sm text-gray-600 dark:text-gray-300 flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="min-w-0">
             <div className="text-xs text-gray-500">Publisher</div>
-            <div className="truncate max-w-[28rem]">{publishersStr}</div>
+            <div className="line-clamp-2 max-w-[28rem]">{publishersStr}</div>
           </div>
           <div className="min-w-0">
             <div className="text-xs text-gray-500">Gênero</div>
