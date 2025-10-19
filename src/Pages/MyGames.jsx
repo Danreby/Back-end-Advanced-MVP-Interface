@@ -1,3 +1,4 @@
+// File: src/pages/MyGames.jsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { getProfile } from "../API/user";
@@ -152,11 +153,20 @@ export default function MyGames() {
         if (g.id) {
           backendGame = await gamesApi.getGameWithMyReview(g.id).catch(() => null);
         }
-        const external =
-          backendGame?.external_guid || null;
+
+        const externalFromBackend = backendGame?.external_guid ?? backendGame?.externalGuid ?? null;
+        const external = externalFromBackend || externalFromRow;
+
         if (!external) throw new Error("external_guid do GiantBomb não encontrado para este jogo.");
-        const gbData = await getGameDetails(external);
-        setSelectedGame({ ...(backendGame ?? g), giantbomb: gbData });
+
+        const rawGbData = await getGameDetails(external);
+        const gbPayload = rawGbData?.game ?? rawGbData ?? {};
+
+        const base = backendGame ?? g ?? {};
+
+        const selected = { ...base,  giantbomb: gbPayload };
+
+        setSelectedGame(selected);
         setDrawerOpen(false);
       } catch (err) {
         console.error("Erro ao carregar detalhes do GiantBomb:", err);
