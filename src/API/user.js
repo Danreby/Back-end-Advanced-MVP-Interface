@@ -15,7 +15,17 @@ export const changePassword = async (payload) => {
   return response.data;
 };
 
+const ALLOWED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+
 export const updateAvatar = async (file, onUploadProgress) => {
+  if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+    throw new Error("Tipo de imagem não suportado. Use JPEG, PNG ou WebP.");
+  }
+  if (file.size > MAX_AVATAR_BYTES) {
+    throw new Error("Arquivo muito grande. Tamanho máximo: 2 MB.");
+  }
+
   const formData = new FormData();
   formData.append("file", file);
 

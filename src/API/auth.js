@@ -63,12 +63,3 @@ export const isAuthenticated = () => {
   return !!localStorage.getItem("token");
 };
 
-// Pega dados do usuário logado
-export const getProfile = async () => {
-  const response = await api.get("/users/me", {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    },
-  });
-  return response.data;
-};

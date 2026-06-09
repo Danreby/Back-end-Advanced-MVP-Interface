@@ -2,11 +2,9 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { getProfile } from "../API/user";
 import { Navbar } from "../components/common/NavBar";
-import { logout } from "../API/auth";
+import { logout, isAuthenticated } from "../API/auth";
 import GbResultItem from "../components/gb/GbResultItem";
 import GameDetailModal from "../components/gb/GameDetailModal";
-import GameList from "../components/games/GameList";
-import { isAuthenticated } from "../API/auth";
 import { searchGames, getGameDetails, importGameToCatalog } from "../API/gbApi";
 import SearchBar from "../components/gb/SearchBar";
 import LoadingOverlay from "../components/common/LoadingOverlay";
@@ -17,9 +15,6 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
-  const [games, setGames] = useState([]);
-  const [loadingGames, setLoadingGames] = useState(true);
-
   const [gbResults, setGbResults] = useState([]);
   const [gbLoading, setGbLoading] = useState(false);
   const [gbError, setGbError] = useState(null);
@@ -28,8 +23,7 @@ export default function Dashboard() {
   useEffect(() => {
     let mounted = true;
 
-    const token = isAuthenticated();
-    if (!token) {
+    if (!isAuthenticated()) {
       window.location.href = "/login";
       return;
     }
@@ -46,43 +40,6 @@ export default function Dashboard() {
         }
       })
       .finally(() => mounted && setLoadingProfile(false));
-
-    (async () => {
-      setLoadingGames(true);
-      try {
-        const res = await fetch("http://127.0.0.1:8000/reviews", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!res.ok) throw new Error("Erro ao carregar jogos");
-
-        const data = await res.json();
-
-        const normalized = Array.isArray(data)
-          ? data.map((g) => ({
-              ...g,
-              rating:
-                typeof g.avg_rating !== "undefined" && g.avg_rating !== null
-                  ? Number(g.avg_rating)
-                  : typeof g.rating !== "undefined"
-                  ? Number(g.rating || 0)
-                  : 0,
-              reviews_count:
-                typeof g.reviews_count !== "undefined" ? Number(g.reviews_count) : 0,
-            }))
-          : [];
-
-        if (mounted) setGames(normalized);
-      } catch (err) {
-        console.error("Erro ao carregar catálogo:", err);
-        if (mounted) setGames([]);
-      } finally {
-        if (mounted) setLoadingGames(false);
-      }
-    })();
 
     return () => {
       mounted = false;
@@ -122,16 +79,12 @@ export default function Dashboard() {
   }
 
   async function handleImportGb(item) {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("Faça login para importar jogos.");
+    if (!isAuthenticated()) {
       window.location.href = "/login";
       return;
     }
     try {
-      const created = await importGameToCatalog(item, token);
-      setGames((prev) => [created, ...prev]);
-      // alert(`Jogo importado: ${created.name}`);
+      await importGameToCatalog(item);
     } catch (err) {
       console.error("Import error", err);
       alert("Erro ao importar: " + (err.message || err));
@@ -188,15 +141,11 @@ export default function Dashboard() {
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
           <motion.div className="lg:col-span-2 rounded-3xl p-4 shadow-2xl bg-white/95 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700" variants={cardVariants} initial="hidden" animate="show">
             {/* <h2 className="font-semibold text-lg">Catálogo</h2> */}
-            {loadingGames ? (
-              <div className="mt-4 text-sm text-gray-500">Carregando jogos...</div>
-            ) : (
-              <motion.div variants={listVariants} initial="hidden" animate="show" className="">
-                <motion.div variants={itemVariants}>
-                  <ReviewList games={games} />
-                </motion.div>
+            <motion.div variants={listVariants} initial="hidden" animate="show" className="">
+              <motion.div variants={itemVariants}>
+                <ReviewList />
               </motion.div>
-            )}
+            </motion.div>
           </motion.div>
 
           <motion.aside className="rounded-3xl p-4 shadow-2xl bg-white/95 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
@@ -237,7 +186,7 @@ export default function Dashboard() {
         <motion.div animate={{ x: [0, 20, 0] }} transition={{ duration: 9, repeat: Infinity, ease: "linear" }} className="absolute right-24 top-40 w-8 h-8 rounded-full bg-gray-100/20 dark:bg-white/8 blur-sm" />
       </div>
 
-      <LoadingOverlay open={gbLoading} text={"Carregando..."} />
+      <LoadingOverlay open={loadingProfile || gbLoading} text={loadingProfile ? "Carregando perfil..." : "Carregando..."} />
       <Footer variant="fixed" />
     </div>
   );

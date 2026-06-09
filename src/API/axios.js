@@ -54,8 +54,11 @@ api.interceptors.response.use(
       const status = err?.response?.status;
       if (status === 401) {
         try { localStorage.removeItem("token"); } catch (e) {}
+        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+          window.location.href = "/login";
+        }
       }
-    } catch (e) {  }
+    } catch (e) {}
     return Promise.reject(err);
   }
 );

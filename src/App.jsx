@@ -15,7 +15,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/Login" element={<Login />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/profile" element={isAuthenticated() ? <Profile /> : <Navigate to="/login" />} />
         <Route path="/games" element={isAuthenticated() ? <MyGames /> : <Navigate to="/login" />} />

@@ -155,7 +155,7 @@ export default function MyGames() {
         }
 
         const externalFromBackend = backendGame?.external_guid ?? backendGame?.externalGuid ?? null;
-        const external = externalFromBackend || externalFromRow;
+        const external = externalFromBackend || g.external_guid || g.externalGuid || null;
 
         if (!external) throw new Error("external_guid do GiantBomb não encontrado para este jogo.");
 
