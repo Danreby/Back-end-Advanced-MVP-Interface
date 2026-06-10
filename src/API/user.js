@@ -75,8 +75,18 @@ export const listMyFriends = async () => {
   return res.data;
 };
 
-export const listMyFriendRequests = async (params = {}) => {
-  const res = await api.get("/users/me/friends/requests", { params });
+export const listMyFriendRequests = async () => {
+  const res = await api.get("/users/me/friends/requests");
+  return res.data;
+};
+
+export const listMySentRequests = async () => {
+  const res = await api.get("/users/me/friends/requests/sent");
+  return res.data;
+};
+
+export const getFriendshipStatus = async (targetUserId) => {
+  const res = await api.get(`/users/me/friends/status/${targetUserId}`);
   return res.data;
 };
 
@@ -88,6 +98,16 @@ export const acceptFriendRequest = async (requestId) => {
 export const rejectFriendRequest = async (requestId) => {
   const res = await api.post(`/users/me/friends/${requestId}/reject`);
   return res.data;
+};
+
+export const cancelFriendRequest = async (requestId) => {
+  await api.delete(`/users/me/friends/requests/${requestId}`);
+  return true;
+};
+
+export const removeFriend = async (friendId) => {
+  await api.delete(`/users/me/friends/${friendId}`);
+  return true;
 };
 
 export const blockUser = async (userId) => {
@@ -120,8 +140,12 @@ export default {
   sendFriendRequest,
   listMyFriends,
   listMyFriendRequests,
+  listMySentRequests,
+  getFriendshipStatus,
   acceptFriendRequest,
   rejectFriendRequest,
+  cancelFriendRequest,
+  removeFriend,
   blockUser,
   searchUsers,
   getUserById,

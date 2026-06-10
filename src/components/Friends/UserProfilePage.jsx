@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import userApi, { getProfile } from "../../API/user";
+import { logout } from "../../API/auth";
 import api from "../../API/axios";
 import FriendButtons from "../users/FriendButtons";
 import { Navbar } from "../common/NavBar";
@@ -13,85 +14,40 @@ export default function UserProfilePage() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [myProfile, setMyProfile] = useState(null);
-  const [friends, setFriends] = useState([]);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     let mounted = true;
+    setLoading(true);
+    setError(null);
 
-    (async () => {
-      setLoading(true);
-      setError(null);
+    Promise.allSettled([
+      userApi.getUserById(id),
+      getProfile(),
+    ]).then(([uRes, meRes]) => {
+      if (!mounted) return;
 
-      try {
-        const promises = [
-          (typeof userApi.getUserById === "function") ? userApi.getUserById(id) : Promise.reject(new Error("getUserById não disponível")),
-          getProfile ? getProfile() : Promise.resolve(null),
-          typeof userApi.listMyFriends === "function" ? userApi.listMyFriends() : Promise.resolve([]),
-        ];
-
-        const [uRes, meRes, frRes] = await Promise.allSettled(promises);
-
-        if (!mounted) return;
-
-        if (uRes.status === "fulfilled") {
-          const maybeResponse = uRes.value;
-          const uData = maybeResponse && maybeResponse.data !== undefined ? maybeResponse.data : maybeResponse;
-
-          if (!uData) {
-            setError("Usuário não encontrado");
-            setUser(null);
-            return;
-          }
-          setUser(uData);
-        } else {
-          const reason = uRes.reason;
-          const status = reason && reason.response && reason.response.status;
-          if (status === 404) setError("Usuário não encontrado");
-          else setError("Erro ao carregar usuário");
-          setUser(null);
-          return;
-        }
-
-        if (meRes && meRes.status === "fulfilled") {
-          const maybeResponse = meRes.value;
-          const meData = maybeResponse && maybeResponse.data !== undefined ? maybeResponse.data : maybeResponse;
-          setMyProfile(meData || null);
-        } else {
-          setMyProfile(null);
-        }
-
-        if (frRes && frRes.status === "fulfilled") {
-          const maybeResponse = frRes.value;
-          const frData = maybeResponse && maybeResponse.data !== undefined ? maybeResponse.data : maybeResponse;
-          setFriends(Array.isArray(frData) ? frData : []);
-        } else {
-          setFriends([]);
-        }
-      } catch (err) {
-        console.error("Erro no carregamento do perfil:", err);
-        if (mounted) setError("Erro ao carregar página");
-      } finally {
-        if (mounted) setLoading(false);
+      if (uRes.status === "fulfilled") {
+        setUser(uRes.value ?? null);
+      } else {
+        const httpStatus = uRes.reason?.response?.status;
+        setError(httpStatus === 404 ? "Usuário não encontrado" : "Erro ao carregar usuário");
       }
-    })();
 
-    return () => {
-      mounted = false;
-    };
+      if (meRes.status === "fulfilled") {
+        setMyProfile(meRes.value ?? null);
+      }
+    }).finally(() => mounted && setLoading(false));
+
+    return () => { mounted = false; };
   }, [id]);
 
   if (loading) {
     return (
       <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-slate-900 dark:via-indigo-950 dark:to-black transition-colors duration-300">
-        <Navbar user={myProfile} />
-        <main className="max-w-4xl mx-auto p-6">
-          <div className="rounded-3xl p-6 bg-white/95 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 shadow-2xl">
-            <div>Carregando perfil...</div>
-          </div>
-        </main>
-        <Footer variant="fixed"/>
-        <LoadingOverlay open={true} text="Carregando perfil..." />
+        <Navbar user={myProfile} onLogout={logout} />
+        <Footer variant="fixed" />
+        <LoadingOverlay open text="Carregando perfil..." />
       </div>
     );
   }
@@ -99,7 +55,7 @@ export default function UserProfilePage() {
   if (error || !user) {
     return (
       <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-slate-900 dark:via-indigo-950 dark:to-black transition-colors duration-300">
-        <Navbar user={myProfile} />
+        <Navbar user={myProfile} onLogout={logout} />
         <main className="max-w-4xl mx-auto p-6">
           <div className="rounded-3xl p-6 bg-white/95 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 shadow-2xl">
             <div className="text-lg font-medium text-gray-800 dark:text-gray-100">{error || "Usuário não encontrado"}</div>
@@ -113,13 +69,12 @@ export default function UserProfilePage() {
             </div>
           </div>
         </main>
-        <Footer variant="fixed"/>
+        <Footer variant="fixed" />
       </div>
     );
   }
 
-  const isMe = myProfile && myProfile.id === user.id;
-  const isFriend = friends.some((f) => String(f.id) === String(user.id));
+  const isMe = myProfile && String(myProfile.id) === String(user.id);
 
   function resolveAvatarUrl(avatar_url) {
     if (!avatar_url) return null;
@@ -138,7 +93,7 @@ export default function UserProfilePage() {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-slate-900 dark:via-indigo-950 dark:to-black transition-colors duration-300">
-      <Navbar user={myProfile} />
+      <Navbar user={myProfile} onLogout={logout} />
       <main className="max-w-4xl mx-auto p-6">
         <div className="rounded-3xl p-6 bg-white/95 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 shadow-2xl">
           <div className="flex gap-6 items-center">
@@ -166,24 +121,14 @@ export default function UserProfilePage() {
 
             <div className="flex-shrink-0">
               {!isMe && (
-                <FriendButtons
-                  targetUserId={user.id}
-                  initialIsFriend={isFriend}
-                  onFriendshipChange={(newState) => {
-                    if (newState === "accepted") {
-                      setFriends((s) => [...s, { id: user.id, name: user.name, avatar_url: user.avatar_url }]);
-                    } else if (newState === "blocked") {
-                      setFriends((s) => s.filter((f) => f.id !== user.id));
-                    }
-                  }}
-                />
+                <FriendButtons targetUserId={user.id} />
               )}
             </div>
           </div>
         </div>
       </main>
 
-      <Footer variant="fixed"/>
+      <Footer variant="fixed" />
     </div>
   );
 }
