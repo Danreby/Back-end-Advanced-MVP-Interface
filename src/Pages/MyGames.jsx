@@ -14,6 +14,7 @@ import { getGameDetails, importGameToCatalog } from "../API/gbApi";
 import * as gamesApi from "../API/games";
 import * as reviewsApi from "../API/reviews";
 import { Footer } from "../components/common/Footer";
+import { toast } from "react-toastify";
 
 function useDebounced(value, delay = 250) {
   const [debounced, setDebounced] = useState(value);
@@ -187,8 +188,10 @@ export default function MyGames() {
         if (!newGame) return;
         setGames((prev = []) => [newGame, ...prev.filter((g) => g.id !== newGame.id)]);
         setSelectedGame(null);
+        toast.success(`"${item.name}" adicionado ao catálogo!`);
       } catch (err) {
         console.error("Falha ao importar jogo:", err);
+        toast.error("Erro ao importar: " + (err.message || err));
       }
     },
     []
