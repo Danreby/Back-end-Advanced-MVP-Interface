@@ -10,6 +10,7 @@ import SearchBar from "../components/gb/SearchBar";
 import LoadingOverlay from "../components/common/LoadingOverlay";
 import ReviewList from "../components/games/ReviewList";
 import { Footer } from "../components/common/Footer";
+import { toast } from "react-toastify";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
@@ -85,9 +86,11 @@ export default function Dashboard() {
     }
     try {
       await importGameToCatalog(item);
+      toast.success(`"${item.name}" adicionado ao catálogo!`);
+      setSelectedGbGame(null);
     } catch (err) {
       console.error("Import error", err);
-      alert("Erro ao importar: " + (err.message || err));
+      toast.error("Erro ao importar: " + (err.message || err));
     }
   }
 
