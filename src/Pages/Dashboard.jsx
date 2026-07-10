@@ -137,7 +137,7 @@ export default function Dashboard() {
           <motion.h1 className="text-2xl font-bold" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>Dashboard</motion.h1>
 
           <div className="ml-auto w-96">
-            <SearchBar onSearch={handleGbSearch} placeholder="Pesquisar na GiantBomb" />
+            <SearchBar onSearch={handleGbSearch} placeholder="Pesquisar jogos..." loading={gbLoading} />
           </div>
         </div>
 
@@ -165,7 +165,15 @@ export default function Dashboard() {
                   <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
                 </div>
               ) : gbResults.length === 0 ? (
-                <div className="text-sm text-gray-500 dark:text-gray-400">Pesquise na GiantBomb para ver resultados aqui.</div>
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Pesquise um jogo</div>
+                  <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">Digite o nome na barra acima</div>
+                </div>
               ) : (
                 <motion.ul className="space-y-2 max-h-96 overflow-auto custom-scrollbar" variants={listVariants} initial="hidden" animate="show">
                   {gbResults.map((item) => (
@@ -189,7 +197,7 @@ export default function Dashboard() {
         <motion.div animate={{ x: [0, 20, 0] }} transition={{ duration: 9, repeat: Infinity, ease: "linear" }} className="absolute right-24 top-40 w-8 h-8 rounded-full bg-gray-100/20 dark:bg-white/8 blur-sm" />
       </div>
 
-      <LoadingOverlay open={loadingProfile || gbLoading} text={loadingProfile ? "Carregando perfil..." : "Carregando..."} />
+      <LoadingOverlay open={loadingProfile} text="Carregando perfil..." />
       <Footer variant="fixed" />
     </div>
   );
