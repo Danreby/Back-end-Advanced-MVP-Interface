@@ -157,14 +157,14 @@ export default function MyGames() {
         const externalFromBackend = backendGame?.external_guid ?? backendGame?.externalGuid ?? null;
         const external = externalFromBackend || g.external_guid || g.externalGuid || null;
 
-        if (!external) throw new Error("external_guid do GiantBomb não encontrado para este jogo.");
+        if (!external) throw new Error("external_guid não encontrado para este jogo.");
 
-        const rawGbData = await getGameDetails(external);
-        const gbPayload = rawGbData?.game ?? rawGbData ?? {};
+        const rawGameData = await getGameDetails(external);
+        const gamePayload = rawGameData?.game ?? rawGameData ?? {};
 
         const base = backendGame ?? g ?? {};
 
-        const selected = { ...base,  giantbomb: gbPayload };
+        const selected = { ...base, giantbomb: gamePayload };
 
         setSelectedGame(selected);
         setDrawerOpen(false);
